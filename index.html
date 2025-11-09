@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quality Dithering</title>
+  <link rel="stylesheet" href="src/app/style.css">
+
+  <meta name="description" content="Dither images with any color palette">
+  <meta name="keywords" content="dithering, wplace, generator, art, Minecraft, mapart, Pico8, mosaic, Rubik's Cube, map art, palette, posterize">
+  <meta name="author" content="@EFHIII">
+  <meta property="og:title" content="Quality Dithering">
+  <meta property="og:description" content="Dither images with any color palette">
+  <meta property="og:url" content="https://efhiii.github.io/dithering">
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1.0" />
+</head>
+
+<body>
+  <h1>Quality Dithering</h1>
+  <div><a href="/advanced">Advanced Version</a></div>
+  <div id="controls">
+    <fieldset>
+      <legend>General</legend>
+      <div class="parameters">
+        <label for="imageLoader1">Image to Dither</label>
+        <input type="file" id="imageLoader1" name="imageLoader1" accept="image/*">
+      </div>
+      <div class="parameters">
+        <label for="outputWidth">Output Width</label>
+        <input type="number" id="outputWidth" name="outputWidth" value=""><br>
+        <label for="outputHeight">Output Height</label>
+        <input type="number" id="outputHeight" name="outputHeight" value="">
+      </div>
+      <div class="parameters">
+        <label for="colorPalette">Color Palette</label>
+        <select id="colorPalette" name="colorPalette"></select>
+      </div>
+      <div class="parameters" id="customPaletteGroup" style="display: none;">
+        <label for="customPalette">Custom Palette</label><br>
+        <input type="text" id="customPalette" name="customPalette" placeholder="e.g., #ff0000, #00ff00, #0000ff" oninput="processImage()">
+      </div>
+      <div class="parameters" id="generatePaletteGroup">
+        <label for="generatePaletteSize">Generate Palette Size</label><br>
+        <input type="number" id="generatePaletteSize" name="generatePaletteSize" value="10" oninput="processImage()">
+      </div>
+      <div class="parameters">
+        <label for="advanced">Advanced settings</label>
+        <input type="checkbox" id="advanced" name="advanced">
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Palette Preview</legend>
+      <div class="parameters">
+        <canvas id="paletteCanvas"></canvas>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Preprocessing</legend>
+      <div class="parameters">
+        <label for="grayscale">Grayscale</label>
+        <input type="checkbox" id="grayscale" name="grayscale" oninput="processImage()">
+      </div>
+      <div class="parameters">
+        <label for="blackPoint">Black Point: <span id="blackPointText">0</span></label>
+        <input type="range" name="blackPoint" id="blackPoint" value="0" min="0" max="255" step="1">
+      </div>
+      <div class="parameters">
+        <label for="whitePoint">White Point: <span id="whitePointText">255</span></label>
+        <input type="range" name="whitePoint" id="whitePoint" value="255" min="0" max="255" step="1">
+      </div>
+      <div class="parameters" id="patternDiv">
+        <label for="pattern">Pattern</label>
+        <select id="pattern" name="pattern" onchange="processImage()">
+          <optgroup label="Saffron">
+            <option value="saffronPatternSmooth">Saffron Smooth</option>
+            <option value="saffronPatternAccurate">Saffron Accurate</option>
+          </optgroup>
+          <optgroup label="Adobe">
+            <option value="patternDithering">Pattern Dithering</option>
+          </optgroup>
+          <optgroup label="Joel Yliluoma">
+            <option value="JY1">Joel Yliluoma 1</option>
+            <option value="JY2">Joel Yliluoma 2</option>
+            <option value="JY3">Joel Yliluoma 3</option>
+          </optgroup>
+          <optgroup label="Simulated Annealing">
+            <option value="greedyAnnealing">Greedy Annealing</option>
+            <option value="randomAnnealing">Random Annealing</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="parameters" id="patternSizeDiv">
+        <label for="patternSize">Pattern Size: <span id="patternSizeText">16</span></label>
+        <input type="range" name="patternSize" id="patternSize" value="4" min="0" max="8" step="1" oninput="processImage()">
+      </div>
+    </fieldset>
+    <fieldset id="kernelField" style="display: none">
+      <legend>Kernel</legend>
+      <div class="parameters">
+        <label for="falloffFunction">Falloff Function</label>
+        <select id="falloffFunction" name="falloffFunction">
+          <option value="gaussianSpec">Gaussian Specular</option>
+          <option value="gaussianSum" selected>Gaussian Sum</option>
+          <option value="power">Power</option>
+          <option value="inversePower">Inverse Power</option>
+          <option value="reversePower">Reverse Power</option>
+        </select>
+      </div>
+      <div class="parameters">
+        <label for="distanceFunction">Distance Function</label>
+        <select id="distanceFunction" name="distanceFunction" onchange="processImage()">
+          <option value="manhattan">Manhattan Distance</option>
+          <option value="euclidean" selected>Euclidean Distance</option>
+          <option value="chebyshev">Chebyshev Distance</option>
+        </select>
+      </div>
+      <div class="parameters">
+        <label for="kernelSizeInput">Kernel Size</label>
+        <input type="number" id="kernelSizeInput" name="kernelSizeInput" value="9" min="3" max="35" step="2" onchange="processImage()">
+      </div>
+    </fieldset>
+
+    <fieldset id="gaussianSum" style="display: none">
+      <legend>Sum of gaussians</legend>
+      <div class="parameters">
+        <label for="gaussianCount">Gaussians</label>
+        <input type="number" id="gaussianCount" name="gaussianCount" value="2" min="1" max="10">
+      </div>
+      <div class="parameters">
+        <label for="gaussianSumSpec">Specular</label>
+        <input type="range" name="gaussianSumSpec" id="gaussianSumSpec" value="0.9" min="0" max="0.99" step="0.01" oninput="processImage()">
+      </div>
+      <div id="gaussianParams"></div>
+    </fieldset>
+    <fieldset id="gaussianSpec" style="display: none">
+      <legend>Gaussian Specular</legend>
+      <div class="parameters">
+        <label for="gaussianSpecSize">Size</label>
+        <input type="range" name="gaussianSpecSize" id="gaussianSpecSize" value="0.19" min="0" max="0.99" step="0.01" oninput="processImage()">
+      </div>
+      <div class="parameters">
+        <label for="gaussianSpecSpec">Specular</label>
+        <input type="range" name="gaussianSpecSpec" id="gaussianSpecSpec" value="0.5" min="0" max="0.99" step="0.01" oninput="processImage()">
+      </div>
+    </fieldset>
+    <fieldset id="power" style="display: none">
+      <legend>Power</legend>
+      <div class="parameters">
+        <label for="powerSize">Size</label>
+        <input type="range" name="powerSize" id="powerSize" value="0.5" min="0" max="1" step="0.01" oninput="processImage()">
+      </div>
+      <div class="parameters">
+        <label for="powerPower">Power</label>
+        <input type="range" name="powerPower" id="powerPower" value="0.5" min="0" max="1" step="0.01" oninput="processImage()">
+      </div>
+    </fieldset>
+    <fieldset id="inversePower" style="display: none">
+      <legend>Inverse Power</legend>
+      <div class="parameters">
+        <label for="inversePowerSize">Size</label>
+        <input type="range" name="inversePowerSize" id="inversePowerSize" value="0.5" min="0" max="1" step="0.01" oninput="processImage()">
+      </div>
+      <div class="parameters">
+        <label for="inversePowerPower">Power</label>
+        <input type="range" name="inversePowerPower" id="inversePowerPower" value="0.5" min="0" max="1" step="0.01" oninput="processImage()">
+      </div>
+    </fieldset>
+    <fieldset id="reversePower" style="display: none">
+      <legend>Reverse Power</legend>
+      <div class="parameters">
+        <label for="powerSize">Size</label>
+        <input type="range" name="reversePowerSize" id="reversePowerSize" value="0.5" min="0" max="1" step="0.01" oninput="processImage()">
+      </div>
+      <div class="parameters">
+        <label for="reversePowerPower">Power</label>
+        <input type="range" name="reversePowerPower" id="reversePowerPower" value="0.5" min="0" max="1" step="0.01" oninput="processImage()">
+      </div>
+    </fieldset>
+    <fieldset id="kernelGraph" style="display: none">
+      <legend>Kernel Graph</legend>
+      <div class="parameters">
+        <canvas id="kernelGraphCanvas"></canvas>
+      </div>
+    </fieldset>
+    <fieldset id="kernelPreview" style="display: none">
+      <legend>Kernel Preview</legend>
+      <div class="parameters">
+        <canvas id="kernelCanvas"></canvas>
+      </div>
+    </fieldset>
+  </div>
+  <hr>
+  <div style="text-align: center; font-size: 1.5em; font-weight: bold;">Best<br><span id="bestAlg">N/A</span></div><hr>
+  <div style="text-align: center; font-size: 1.5em; font-weight: bold;">Score of best<br><span id="score">N/A</span></div>
+  <div style="color: #808080; font-size: 0.8em;">Lower is better</div>
+  <hr>
+  <div class="canvases">
+    <fieldset>
+      <legend>Target</legend>
+      <canvas id="targetCanvas"></canvas>
+    </fieldset>
+    <fieldset>
+      <legend>Burkes</legend>
+      <canvas id="burkesCanvas"></canvas>
+    </fieldset>
+    <fieldset>
+      <legend>Pattern Dithering</legend>
+      <canvas id="patternDitheringCanvas"></canvas>
+    </fieldset>
+    <fieldset>
+      <legend>Least Error Scan</legend>
+      <canvas id="leastErrorScanCanvas"></canvas>
+    </fieldset>
+    <fieldset>
+      <legend>Least Error First</legend>
+      <canvas id="leastErrorFirstCanvas"></canvas>
+    </fieldset>
+    <fieldset>
+      <legend>Energy Dithering (2 ppc)</legend>
+      <canvas id="energyDitherCanvas"></canvas>
+    </fieldset>
+    <fieldset>
+      <legend>Energy Dithering w/ Swaps (4 ppc)</legend>
+      <canvas id="energyDitherSwapsCanvas"></canvas>
+    </fieldset>
+  </div>
+  <script type="module" src="src/app/simple-app.js"></script>
+</body>
+
+</html>
