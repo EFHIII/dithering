@@ -114,7 +114,7 @@ function handleImage(e) {
     img.onload = function() {
       originalImage = img;
 
-      outputWidth.value = Math.min(1920, originalImage.width);
+      outputWidth.value = Math.min(1000, originalImage.width);
 
       processImage();
     }
@@ -155,7 +155,7 @@ export function processImage() {
     height = parseInt(outputHeight.value, 10);
     width = Math.round(height / aspectRatio);
   } else {
-    width = Math.min(1920, originalImage.width);
+    width = Math.min(1000, originalImage.width);
     height = Math.round(width * aspectRatio);
   }
 
