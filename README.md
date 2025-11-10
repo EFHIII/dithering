@@ -5,6 +5,8 @@ To use, go here: https://efhiii.github.io/dithering
 
 All of the dithering algorithms are available as standalone files in [src/dithering-algorithms](src/dithering-algorithms)
 
+There are brief descriptions of the algorithms on [the page itself](https://efhiii.github.io/dithering). The text bellow is a more technical description.
+
 The scoring metric shown on the webpage is based off of comparing a blurred version of the original image with a blurred version of the dithered image.
 However, the goal isn't for the dithered image to look like the original image only when you're squinting at them, which is what we'd get if we just used a Gaussian blur.
 Instead, this program uses a perception kernel which you can tune yourself, but by default is the sum of 2 Gaussian of different sizes plus the center pixel is heavily biased over the other pixels so as to encourage retaining high frequency information where possible.
