@@ -196,7 +196,7 @@ export function processImage() {
   score.innerText = 0;
 
   // start worker
-  ditherWorker = new Worker('/src/app/worker-manager.js', {
+  ditherWorker = new Worker('.././src/app/worker-manager.js', {
     type: 'module'
   });
 
