@@ -6,8 +6,8 @@ To use, go here: https://efhiii.github.io/dithering
 All of the dithering algorithms are available as standalone files in [src/dithering-algorithms](src/dithering-algorithms)
 
 The scoring metric shown on the webpage is based off of comparing a blurred version of the original image with a blurred version of the dithered image.
-However, the goal isn't for the dithered image to look like the original image only when you're squinting at them, which is what we'd get if we just used a gaussian blur.
-Instead, this program uses a perception kernel which you can tune yourself, but by default is the sum of 2 gaussians of different sizes plus the center pixel is heavily biased over the other pixels so as to encourage retaining high frequency information where possible.
+However, the goal isn't for the dithered image to look like the original image only when you're squinting at them, which is what we'd get if we just used a Gaussian blur.
+Instead, this program uses a perception kernel which you can tune yourself, but by default is the sum of 2 Gaussian of different sizes plus the center pixel is heavily biased over the other pixels so as to encourage retaining high frequency information where possible.
 The size of the kernel defaults to 9x9 pixels. Making the kernel smaller makes the algorithms faster, making it larger allows them to do more spread out dithering though the falloff function may need to be retuned based what would look best given things like the expected fov / pixel.
 
 # Example
@@ -53,7 +53,7 @@ You might notice that there are still some undesirable patterns that form. Tradi
 
 Well, a good dithered image will look identical to the original when you squint. That is to say, what the dithered image looks like when squinting should look like what the original image looks like when squinting.
 
-It's not hard to imitate the effect of squinting by using a gausian blur (color interpolation in Linear RGB). That doesn't get us all the way there though. What about when we're not squinting? The human brain still psychovisually spreads color out so that when looking at a pattern of different colors next to eachother, our brain interprets it as having the quality of if those colors were mixed together. What I've found works best is using a gaussian blur or two and then adding a strong bias to the center pixel. 
+It's not hard to imitate the effect of squinting by using a Gaussian blur (color interpolation in Linear RGB). That doesn't get us all the way there though. What about when we're not squinting? The human brain still psychovisually spreads color out so that when looking at a pattern of different colors next to eachother, our brain interprets it as having the quality of if those colors were mixed together. What I've found works best is using a Gaussian blur or two and then adding a strong bias to the center pixel. 
 
 Using a kernel of size 9x9 this is the graph I default to:
 
