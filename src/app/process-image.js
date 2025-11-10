@@ -79,7 +79,7 @@ let originalImage = null;
 
 imageLoader1.addEventListener('change', handleImage, false);
 
-function handleImage(e) {
+function handleImage(e, width = false) {
   const reader = new FileReader();
   reader.onload = function(event) {
     const img = new Image();
@@ -87,6 +87,8 @@ function handleImage(e) {
       originalImage = img;
 
       outputWidth.value = Math.min(1000, originalImage.width);
+
+      if(width) outputWidth.value = width;
 
       processImage();
     }
@@ -237,3 +239,16 @@ export function processImage() {
     energyCooling: parseFloat(energyCooling.value) / 10000
   });
 }
+
+// Load default image
+window.addEventListener('load', () => {
+  const defaultImageUrl = '../assets/!redBrot.png';
+  fetch(defaultImageUrl)
+    .then(res => res.blob())
+    .then(blob => {
+      const file = new File([blob], '../assets/!redBrot.png', { type: blob.type });
+      const event = { target: { files: [file] } };
+      handleImage(event, 200);
+    })
+    .catch(console.error);
+});
