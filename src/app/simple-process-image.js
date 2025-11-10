@@ -260,7 +260,7 @@ export function processImage() {
       kernelSize,
       // Algorithm parameters
       colorspace: 'hct',
-      viewingCondition: viewingCondition,
+      viewingCondition: viewingCondition.value,
       ditherMatrix: 'voidAndCluster',
       pattern: pattern.value,
       patternBias: 0.5,
