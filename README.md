@@ -69,7 +69,7 @@ This is the best algorithm I'm aware of in terms of the quality of dither (assum
 
 If you don't mind waiting a bit, but don't want to wait that long, we can do a little better. If instead of picking points randomly, we start out by assigning the original image color to each pixel and then iteratively choose to change the pixel that would improve the score the most, and if all changes would worsen the score, the unmodified pixel that worsens it the least, terminating once there are no valid moves left, we get something that's inherently deterministic and gives:
 
-<img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/40177425-d40e-4961-a84b-4476472f0361" />
+<img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/ae887bda-6f06-429f-a1a2-b032ae0d879b" />
 
 Unfortunately, it is a bit slow so in the time it takes to run, Energy Dithering with good settings can often get a better score in the same amount of time. It's a starting point though and it doesn't need too big of a change to outpace Energy Dithering (at least until it finishes, at which point Energy Dither will creep up on its score and overtake it). If instead of choosing the single best pixel to change, we just change pixels in scan-line order until we've done a full pass over every pixel without making a change, then we get this:
 
