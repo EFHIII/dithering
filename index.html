@@ -49,6 +49,29 @@
         <input type="number" id="generatePaletteSize" name="generatePaletteSize" value="12" oninput="processImage()">
       </div>
       <div class="parameters">
+        <label for="viewingCondition">Viewing Condition</label>
+        <select id="viewingCondition" name="viewingCondition" onchange="processImage()">
+        <optgroup label="Outdoor">
+          <option value='D65 Outdoor High'>D65 Outdoor High</option>
+          <option value='D65 Outdoor Medium'>D65 Outdoor Medium</option>
+          <option value='D65 Outdoor Low'>D65 Outdoor Low</option>
+          <option value='D65 Outdoor Very Low'>D65 Outdoor Very Low</option>
+        </optgroup>
+        <optgroup label="Standard">
+          <option value='D65 Standard High' selected>D65 Standard High</option>
+          <option value='D65 Standard Medium'>D65 Standard Medium</option>
+          <option value='D65 Standard Low'>D65 Standard Low</option>
+          <option value='D65 Standard Very Low'>D65 Standard Very Low</option>
+        </optgroup>
+        <optgroup label="Cinematic">
+          <option value='D65 Cinematic High'>D65 Cinematic High</option>
+          <option value='D65 Cinematic Medium'>D65 Cinematic Medium</option>
+          <option value='D65 Cinematic Low'>D65 Cinematic Low</option>
+          <option value='D65 Cinematic Very Low'>D65 Cinematic Very Low</option>
+        </optgroup>
+        </select>
+      </div>
+      <div class="parameters">
         <label for="advanced">Advanced settings</label>
         <input type="checkbox" id="advanced" name="advanced">
       </div>

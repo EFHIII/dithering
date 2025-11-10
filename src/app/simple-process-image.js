@@ -233,7 +233,7 @@ export function processImage() {
   ditherWorkers = [];
 
   for(let i = 0; i < ditherCtx.length; i++) {
-    ditherWorkers.push(new Worker('../dithering/src/app/worker-manager.js', {
+    ditherWorkers.push(new Worker('/src/app/worker-manager.js', {
       type: 'module'
     }));
 
@@ -260,6 +260,7 @@ export function processImage() {
       kernelSize,
       // Algorithm parameters
       colorspace: 'hct',
+      viewingCondition: viewingCondition,
       ditherMatrix: 'voidAndCluster',
       pattern: pattern.value,
       patternBias: 0.5,

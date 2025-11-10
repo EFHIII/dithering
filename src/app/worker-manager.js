@@ -55,7 +55,8 @@ self.onmessage = (e) => {
     imgData,
     kernel,
     kernelSize,
-    colorspace
+    colorspace,
+    viewingCondition
   } = e.data;
 
   const width = imgData.width;
@@ -63,12 +64,12 @@ self.onmessage = (e) => {
 
   const linearImageData = imageDatatolRGB(imgData);
   const linearBlurredImage = gaussianBlur(linearImageData, width, height, kernel, kernelSize);
-  const blurredImageInColorSpace = linearDatatoColorspace(linearBlurredImage, colorspace);
+  const blurredImageInColorSpace = linearDatatoColorspace(linearBlurredImage, colorspace, viewingCondition);
 
   e.data.callback = (ditheredData) => {
     const linearDitheredData = imageDatatolRGB(ditheredData);
     const linearBlurredDithered = gaussianBlur(linearDitheredData, width, height, kernel, kernelSize);
-    const blurredDitheredInColorSpace = linearDatatoColorspace(linearBlurredDithered, colorspace);
+    const blurredDitheredInColorSpace = linearDatatoColorspace(linearBlurredDithered, colorspace, viewingCondition);
     const percieveData = linearDatatoImageData(linearBlurredDithered, width, height);
 
     const errorDataArr = calculateErrorDataInColor(width, height, blurredImageInColorSpace, blurredDitheredInColorSpace);

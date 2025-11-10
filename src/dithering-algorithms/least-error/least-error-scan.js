@@ -22,10 +22,11 @@ export function leastErrorScan({
   kernel,
   kernelSize,
   callback,
-  colorspace
+  colorspace,
+  viewingCondition
 }) {
   const paletteLRGB = palette.map(parseCSSColorString);
-  const paletteInColorspace = paletteLRGB.map(c => lRGBToColorspace(...c, colorspace));
+  const paletteInColorspace = paletteLRGB.map(c => lRGBToColorspace(...c, colorspace, viewingCondition));
   const paletteLength = palette.length;
 
   const width = imgData.width;

@@ -229,50 +229,97 @@ for (let i = 0; i < 25736; i++) {
   pow66[i] = Math.pow((i+0.5) / 25735, 0.6648886904474854) * 0.535296378870581;
 }
 
+// L_A, Y_b, Y_w
+const conditions = {
+  'D65 Outdoor High': [200, 0.8, 1],
+  'D65 Outdoor Medium': [200, 0.2, 1],
+  'D65 Outdoor Low': [200, 0.05, 1],
+  'D65 Outdoor Very Low': [200, 0.01, 1],
+
+  'D65 Standard High': [20, 0.8, 1],
+  'D65 Standard Medium': [20, 0.2, 1],
+  'D65 Standard Low': [20, 0.05, 1],
+  'D65 Standard Very Low': [20, 0.01, 1],
+
+  'D65 Cinematic High': [0.2, 0.8, 1],
+  'D65 Cinematic Medium': [0.2, 0.2, 1],
+  'D65 Cinematic Low': [0.2, 0.05, 1],
+  'D65 Cinematic Very Low': [0.2, 0.01, 1],
+};
+
+let L_A = 20;
+let Y_b = 0.2;
+let Y_w = 1;
+
 export function lRGBToHCT(_r, _g, _b) {
   _r = Math.min(1, Math.max(0, _r));
   _g = Math.min(1, Math.max(0, _g));
   _b = Math.min(1, Math.max(0, _b));
+  // convert lRGB to CIE XYZ
+  const ay = _r * 0.2126729 + _g * 0.7151522 + _b * 0.0721750,
+  // convert CIE Y to CIE L*
+  CIE_Lt = ay / 1,
+  CIE_L = ((CIE_Lt > 0.008856) ? Math.pow(CIE_Lt, 1 / 3) : (CIE_Lt * 7.787 + 16 / 116)) * 116 - 16,
+  n = Y_b / Y_w,
+  z = 1.48 + Math.sqrt(n),
+  N_bb = 0.725 * Math.pow(n, -0.2),
+  R_w = 0.97555292473,
+  G_w = 1.01646898486,
+  B_w = 1.08476924428,
+  D = Math.min(1,Math.max(0,1 - 1/3.6 * Math.exp((-L_A-42)/92))),
+  D_r = (1-D) + 100/R_w * D,
+  D_g = (1-D) + 100/G_w * D,
+  D_b = (1-D) + 100/B_w * D,
+  R_cw = R_w*D_r,
+  G_cw = G_w*D_g,
+  B_cw = B_w*D_b,
+  k = 1 / (5 * L_A + 1),
+  k4 = k*k*k*k,
+  F_L = (k4 * L_A + 0.1 * (1 - k4)*(1 - k4) * Math.pow(5 * L_A, 1/3)),
+  F_L_4 = Math.pow(F_L, 0.25),
+  R_aw_x = Math.pow(F_L * Math.abs(R_cw) * 0.01, 0.42),
+  G_aw_x = Math.pow(F_L * Math.abs(G_cw) * 0.01, 0.42),
+  B_aw_x = Math.pow(F_L * Math.abs(B_cw) * 0.01, 0.42),
+  R_aw = Math.sign(R_cw) * 400 * R_aw_x / (R_aw_x + 27.13),
+  G_aw = Math.sign(G_cw) * 400 * G_aw_x / (G_aw_x + 27.13),
+  B_aw = Math.sign(B_cw) * 400 * B_aw_x / (B_aw_x + 27.13),
+  A_w = N_bb * (2*R_aw + G_aw + 0.05*B_aw),
+  X = _r * 0.4124564 + _g * 0.3575761 + _b * 0.1804375,
+  Y = _r * 0.2126729 + _g * 0.7151522 + _b * 0.0721750,
+  Z = _r * 0.0193339 + _g * 0.1191920 + _b * 0.9503041,
+  M16_R = (0.401288*X + 0.650173*Y - 0.051461*Z) * D_r,
+  M16_G = (-0.250268*X + 1.204414*Y + 0.045854*Z) * D_g,
+  M16_B = (-0.002079*X + 0.048952*Y + 0.953127*Z) * D_b,
+  R_a_x = Math.pow(F_L * Math.abs(M16_R) * 0.01, 0.42),
+  G_a_x = Math.pow(F_L * Math.abs(M16_G) * 0.01, 0.42),
+  B_a_x = Math.pow(F_L * Math.abs(M16_B) * 0.01, 0.42),
+  R_a = Math.sign(M16_R) * 400 * R_a_x / (R_a_x + 27.13),
+  G_a = Math.sign(M16_G) * 400 * G_a_x / (G_a_x + 27.13),
+  B_a = Math.sign(M16_B) * 400 * B_a_x / (B_a_x + 27.13),
+  a = R_a + (-12*G_a + B_a) / 11, // redness-greenness
+  b = (R_a + G_a - 2 * B_a) / 9, // yellowness-blueness
+  h_rad = Math.atan2(b, a), // hue in radians
+  e_t = 0.25 * (Math.cos(h_rad + 2) + 3.8),
+  A = N_bb * (2*R_a + G_a + 0.05*B_a),
+  J_root = Math.pow(A / A_w, 0.5 * 0.69 * z),
+  t = (5e4 / 13 * N_bb * e_t * Math.sqrt(a*a + b*b) / (R_a + G_a + 1.05 * B_a + 0.305)),
+  alpha = Math.pow(t, 0.9) * Math.pow(1.64 - Math.pow(0.29, n), 0.73),
+  C = alpha * J_root, // chroma
+  M = C * F_L_4, // colorfulness
+  M_prime = Math.log(1 + 0.0228 * M) / 0.0228,
+  aprime = M_prime * Math.cos(Math.abs(h_rad)),
+  bprime = M_prime * Math.cos(Math.abs(h_rad + Math.PI/2));
 
-  const ay = _r * 0.2126729 + _g * 0.7151522 + _b * 0.0721750;
-
-  const TT = ay / 1;
-  const CIE_L = 116 * ((TT > 0.008856) ? Math.cbrt(TT) : (TT * 7.787 + 16 / 116)) - 16;
-
-  const
-    N_bb = 1.0003040045593807,
-
-    X = _r * 0.4124564 + _g * 0.3575761 + _b * 0.1804375,
-    Y = _r * 0.2126729 + _g * 0.7151522 + _b * 0.0721750,
-    Z = _r * 0.0193339 + _g * 0.1191920 + _b * 0.9503041,
-
-    M16_R = (0.401288 * X + 0.650173 * Y - 0.051461 * Z) * 84.72170373955167,
-    M16_G = (-0.250268 * X + 1.204414 * Y + 0.045854 * Z) * 81.31844233906435,
-    M16_B = (-0.002079 * X + 0.048952 * Y + 0.953127 * Z) * 76.2094256079197,
-
-    R_a_x = pow42[(153.88267531211605 * Math.abs(M16_R)) >> 0],
-    G_a_x = pow42[(153.88267531211605 * Math.abs(M16_G)) >> 0],
-    B_a_x = pow42[(153.88267531211605 * Math.abs(M16_B)) >> 0],
-
-    R_a = Math.sign(M16_R) * 400 * R_a_x / (R_a_x + 27.13),
-    G_a = Math.sign(M16_G) * 400 * G_a_x / (G_a_x + 27.13),
-    B_a = Math.sign(M16_B) * 400 * B_a_x / (B_a_x + 27.13),
-    a = R_a + (-12 * G_a + B_a) / 11,
-    b = (R_a + G_a - 2 * B_a) / 9,
-    h_rad = Math.atan2(b, a),
-    e_t = 0.25 * (cosineCache[(Math.abs(h_rad + 2) * 4096) >> 0] + 3.8),
-    A = N_bb * (2 * R_a + G_a + 0.05 * B_a),
-    t = (5e4 / 13 * N_bb * e_t * Math.sqrt(a * a + b * b) /
-      (R_a + G_a + 1.05 * B_a + 0.305)),
-    M = Math.pow(t, 0.9) * pow66[(A * 790.2777974913714) >> 0],
-
-    M_prime = Math.log(1 + 0.0228 * M) / 0.0228,
-
-    aprime = M_prime * cosineCache[(Math.abs(h_rad) * 4096) >> 0],
-    bprime = M_prime * cosineCache[(Math.abs(h_rad + Math.PI / 2) * 4096) >> 0];
-
-  return [aprime, bprime, CIE_L];
+  return [
+    aprime,
+    bprime,
+    CIE_L,
+    //Math.atan2(bprime, aprime),
+    //Math.sqrt(aprime * aprime + bprime * bprime),
+  ];
 }
+
+
 function lRGBToOKLrab(r, g, b) {
   r = Math.min(1, Math.max(0, r));
   g = Math.min(1, Math.max(0, g));
@@ -341,47 +388,68 @@ function lRGBToOKLab(r, g, b) {
     21.04542553*l_ + 79.36177850*m_ - 0.40720468*s_,
   ];
 }
+
 function lRGBToCam16(_r, _g, _b) {
   _r = Math.min(1, Math.max(0, _r));
   _g = Math.min(1, Math.max(0, _g));
   _b = Math.min(1, Math.max(0, _b));
 
-  const
-    N_bb = 1.0003040045593807,
+  const n = Y_b / Y_w,
+  z = 1.48 + Math.sqrt(n),
+  N_bb = 0.725 * Math.pow(n, -0.2),
+  R_w = 0.97555292473,
+  G_w = 1.01646898486,
+  B_w = 1.08476924428,
+  D = Math.min(1,Math.max(0,1 - 1/3.6 * Math.exp((-L_A-42)/92))),
+  D_r = (1-D) + 100/R_w * D,
+  D_g = (1-D) + 100/G_w * D,
+  D_b = (1-D) + 100/B_w * D,
+  R_cw = R_w*D_r,
+  G_cw = G_w*D_g,
+  B_cw = B_w*D_b,
+  k = 1 / (5 * L_A + 1),
+  k4 = k*k*k*k,
+  F_L = (k4 * L_A + 0.1 * (1 - k4)*(1 - k4) * Math.pow(5 * L_A, 1/3)),
+  F_L_4 = Math.pow(F_L, 0.25),
+  R_aw_x = Math.pow(F_L * Math.abs(R_cw) * 0.01, 0.42),
+  G_aw_x = Math.pow(F_L * Math.abs(G_cw) * 0.01, 0.42),
+  B_aw_x = Math.pow(F_L * Math.abs(B_cw) * 0.01, 0.42),
+  R_aw = Math.sign(R_cw) * 400 * R_aw_x / (R_aw_x + 27.13),
+  G_aw = Math.sign(G_cw) * 400 * G_aw_x / (G_aw_x + 27.13),
+  B_aw = Math.sign(B_cw) * 400 * B_aw_x / (B_aw_x + 27.13),
+  A_w = N_bb * (2*R_aw + G_aw + 0.05*B_aw),
+  X = _r * 0.4124564 + _g * 0.3575761 + _b * 0.1804375,
+  Y = _r * 0.2126729 + _g * 0.7151522 + _b * 0.0721750,
+  Z = _r * 0.0193339 + _g * 0.1191920 + _b * 0.9503041,
+  M16_R = (0.401288*X + 0.650173*Y - 0.051461*Z) * D_r,
+  M16_G = (-0.250268*X + 1.204414*Y + 0.045854*Z) * D_g,
+  M16_B = (-0.002079*X + 0.048952*Y + 0.953127*Z) * D_b,
+  R_a_x = Math.pow(F_L * Math.abs(M16_R) * 0.01, 0.42),
+  G_a_x = Math.pow(F_L * Math.abs(M16_G) * 0.01, 0.42),
+  B_a_x = Math.pow(F_L * Math.abs(M16_B) * 0.01, 0.42),
+  R_a = Math.sign(M16_R) * 400 * R_a_x / (R_a_x + 27.13),
+  G_a = Math.sign(M16_G) * 400 * G_a_x / (G_a_x + 27.13),
+  B_a = Math.sign(M16_B) * 400 * B_a_x / (B_a_x + 27.13),
+  a = R_a + (-12*G_a + B_a) / 11, // redness-greenness
+  b = (R_a + G_a - 2 * B_a) / 9, // yellowness-blueness
+  h_rad = Math.atan2(b, a), // hue in radians
+  e_t = 0.25 * (Math.cos(h_rad + 2) + 3.8),
+  A = N_bb * (2*R_a + G_a + 0.05*B_a),
+  J_root = Math.pow(A / A_w, 0.5 * 0.69 * z),
+  t = (5e4 / 13 * N_bb * e_t * Math.sqrt(a*a + b*b) / (R_a + G_a + 1.05 * B_a + 0.305)),
+  alpha = Math.pow(t, 0.9) * Math.pow(1.64 - Math.pow(0.29, n), 0.73),
+  C = alpha * J_root, // chroma
+  M = C * F_L_4, // colorfulness
+  M_prime = Math.log(1 + 0.0228 * M) / 0.0228,
+  aprime = M_prime * Math.cos(Math.abs(h_rad)),
+  bprime = M_prime * Math.cos(Math.abs(h_rad + Math.PI/2)),
+  J = 100 * J_root*J_root;;
 
-    X = _r * 0.4124564 + _g * 0.3575761 + _b * 0.1804375,
-    Y = _r * 0.2126729 + _g * 0.7151522 + _b * 0.0721750,
-    Z = _r * 0.0193339 + _g * 0.1191920 + _b * 0.9503041,
-
-    M16_R = (0.401288 * X + 0.650173 * Y - 0.051461 * Z) * 84.72170373955167,
-    M16_G = (-0.250268 * X + 1.204414 * Y + 0.045854 * Z) * 81.31844233906435,
-    M16_B = (-0.002079 * X + 0.048952 * Y + 0.953127 * Z) * 76.2094256079197,
-
-    R_a_x = pow42[(153.88267531211605 * Math.abs(M16_R)) >> 0],
-    G_a_x = pow42[(153.88267531211605 * Math.abs(M16_G)) >> 0],
-    B_a_x = pow42[(153.88267531211605 * Math.abs(M16_B)) >> 0],
-
-    R_a = Math.sign(M16_R) * 400 * R_a_x / (R_a_x + 27.13),
-    G_a = Math.sign(M16_G) * 400 * G_a_x / (G_a_x + 27.13),
-    B_a = Math.sign(M16_B) * 400 * B_a_x / (B_a_x + 27.13),
-    a = R_a + (-12 * G_a + B_a) / 11,
-    b = (R_a + G_a - 2 * B_a) / 9,
-    h_rad = Math.atan2(b, a),
-    e_t = 0.25 * (cosineCache[(Math.abs(h_rad + 2) * 4096) >> 0] + 3.8),
-    A = N_bb * (2 * R_a + G_a + 0.05 * B_a),
-    J_root_v = pow66[(A * 790.2777974913714) >> 0],
-    J_root = J_root_v / 0.8952178848134279,
-    t = (5e4 / 13 * N_bb * e_t * Math.sqrt(a * a + b * b) /
-      (R_a + G_a + 1.05 * B_a + 0.305)),
-    M = Math.pow(t, 0.9) * J_root_v,
-
-    M_prime = Math.log(1 + 0.0228 * M) / 0.0228,
-
-    aprime = M_prime * cosineCache[(Math.abs(h_rad) * 4096) >> 0],
-    bprime = M_prime * cosineCache[(Math.abs(h_rad + Math.PI / 2) * 4096) >> 0],
-    J = 100 * J_root*J_root;
-
-  return [aprime, bprime, 1.7 * J / (1 + 0.007 * J)];
+  return [
+    aprime,
+    bprime,
+    1.7 * J / (1 + 0.007 * J)
+  ];
 }
 
 function lRGBToLuma(r, g, b) {
@@ -424,7 +492,7 @@ export function colorDelta(p1, p2) {
   return da * da + db * db + dL * dL;
 }
 
-export function lRGBToColorspace(r, g, b, colorspace) {
+export function lRGBToColorspace(r, g, b, colorspace, viewingCondition) {
   switch (colorspace) {
     case 'lrgb':
         lRGBToColorspace = (r, g, b) => [100*r, 100*b, 100*g];
@@ -448,6 +516,9 @@ export function lRGBToColorspace(r, g, b, colorspace) {
     default:
       lRGBToColorspace = lRGBToHCT;
   }
+
+  [L_A, Y_b, Y_w] = conditions[viewingCondition];
+
   return lRGBToColorspace(r, g, b);
 }
 
@@ -485,10 +556,10 @@ export function linearDatatoImageData(sourceLRGB, width, height) {
   return imgData;
 }
 
-export function linearDatatoColorspace(data, colorspace) {
+export function linearDatatoColorspace(data, colorspace, viewingCondition) {
   let newData = new Float64Array(data.length);
   for (let i = 0; i < data.length; i += 3) {
-    const abc = lRGBToColorspace(data[i], data[i + 1], data[i + 2], colorspace);
+    const abc = lRGBToColorspace(data[i], data[i + 1], data[i + 2], colorspace, viewingCondition);
     newData[i] = abc[0];
     newData[i + 1] = abc[1];
     newData[i + 2] = abc[2];

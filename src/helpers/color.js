@@ -149,9 +149,16 @@ export function calculateErrorDataInColor(width, height, blurredSourceInColorSpa
     const i3 = i * 3;
     const i4 = i * 4;
 
-    const delta = colorDelta(
-      blurredSourceInColorSpace.slice(i3, i3 + 3),
-      blurredDitheredInColorSpace.slice(i3, i3 + 3)
+    const delta = colorDelta([
+        blurredSourceInColorSpace[i3 + 0],
+        blurredSourceInColorSpace[i3 + 1],
+        blurredSourceInColorSpace[i3 + 2]
+      ],
+      [
+        blurredDitheredInColorSpace[i3 + 0],
+        blurredDitheredInColorSpace[i3 + 1],
+        blurredDitheredInColorSpace[i3 + 2]
+      ]
     );
 
     totalError += delta;
