@@ -11,7 +11,7 @@
 - [Least Error](#LeastError)
   - [Least Error First](#LeastErrorFirst)
   - [Least Error Scan](#LeastErrorScan)
-- [Positional Dithering](#PatternDithering)
+- [Positional Dithering](#PositionalDithering)
   - [Saffron Smooth](#SaffronSmooth)
   - [Saffron Accurate](#SaffronAccurate)
 - [Pattern Dithering](#PatternDither)
@@ -102,7 +102,9 @@ leastErrorScan({
 'oklab',
 'cam16',
 'lrgb',
-'luma',```
+'srgb',
+'luma',
+```
 - viewingCondition - `String` - The viewing conditions for the colorspace. One of:
 ```js
 'D65 Outdoor High',
@@ -116,7 +118,8 @@ leastErrorScan({
 'D65 Cinematic High',
 'D65 Cinematic Medium',
 'D65 Cinematic Low',
-'D65 Cinematic Very Low'```
+'D65 Cinematic Very Low'
+```
 - ditherMatrix - `String` - The dithering matrix to use. One of:
 ```js
 'bayer-1',
@@ -180,7 +183,7 @@ Least Error First chooses the pixel change that would cause the score to go up t
 ### Least Error Scan
 Least Error Scan does the same thing as Least Error First but only for palette selection on a single pixel at a time (in scan-line order) as apposed to for all pixels at once. This makes it much faster than Least Error First but the final result is not as good.
 
-<a name="Positional Dithering"></a>
+<a name="PositionalDithering"></a>
 ## Positional Dithering
 These algorithms all create a list of colors that, when mixed, approximate the desired pixel color at a given pixel, then use an order matrix (e.g. Bayer matrix or Void & Cluster matrix) to choose the index of the pattern to use.
 
