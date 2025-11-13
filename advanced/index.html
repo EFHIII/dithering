@@ -59,6 +59,7 @@
           <option value="okl_ab">OKL*ab</option>
           <option value="oklab">OKLab</option>
           <option value="lrgb">Linear RGB</option>
+          <option value="srgb">sRGB</option>
         </select>
       </div>
       <div class="parameters">
@@ -123,6 +124,9 @@
           <optgroup label="Simulated Annealing">
             <option value="greedyAnnealing">Greedy Annealing</option>
             <option value="randomAnnealing">Random Annealing</option>
+          </optgroup>
+          <optgroup label="Other">
+            <option value="randomPattern">White Noise</option>
           </optgroup>
         </select>
       </div>
@@ -294,7 +298,7 @@
       <legend>Error</legend>
       <canvas id="errorCanvas"></canvas>
     </fieldset>
-  </div>
+  </div><br>
   <footer><a href="https://github.com/EFHIII/dithering">Code on GitHub</a></footer>
   <script type="module" src="../src/app/advanced-app.js"></script>
 </body>

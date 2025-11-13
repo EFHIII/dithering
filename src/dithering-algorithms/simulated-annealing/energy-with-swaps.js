@@ -44,10 +44,11 @@ export function energyWithSwaps({
   energyStart,
   energyCooling,
   callback,
-  colorspace
+  colorspace,
+  viewingCondition
 }) {
   const paletteLRGB = palette.map(parseCSSColorString);
-  const paletteInColorSpace = paletteLRGB.map(c => lRGBToColorspace(...c, colorspace));
+  const paletteInColorSpace = paletteLRGB.map(c => lRGBToColorspace(...c, colorspace, viewingCondition));
   const paletteLength = palette.length;
 
   const width = imgData.width;

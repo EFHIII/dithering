@@ -26,3 +26,11 @@ export function createPattern(target, paletteLRGB, paletteInColorSpace, patternS
 
   return candidates;
 }
+
+export function randomPattern(target, paletteLRGB, paletteInColorSpace, patternSize) {
+  let ans = [];
+  for(let i = 0; i < patternSize; i++) {
+    ans.push(Math.floor(Math.random() * paletteLRGB.length));
+  }
+  return ans;
+}

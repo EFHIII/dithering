@@ -229,6 +229,51 @@ for (let i = 0; i < 25736; i++) {
   pow66[i] = Math.pow((i+0.5) / 25735, 0.6648886904474854) * 0.535296378870581;
 }
 
+export function lRGBToHCTOldOptimized(_r, _g, _b) {
+  _r = Math.min(1, Math.max(0, _r));
+  _g = Math.min(1, Math.max(0, _g));
+  _b = Math.min(1, Math.max(0, _b));
+
+  const ay = _r * 0.2126729 + _g * 0.7151522 + _b * 0.0721750;
+
+  const TT = ay / 1;
+  const CIE_L = 116 * ((TT > 0.008856) ? Math.cbrt(TT) : (TT * 7.787 + 16 / 116)) - 16;
+
+  const
+    N_bb = 1.0003040045593807,
+
+    X = _r * 0.4124564 + _g * 0.3575761 + _b * 0.1804375,
+    Y = _r * 0.2126729 + _g * 0.7151522 + _b * 0.0721750,
+    Z = _r * 0.0193339 + _g * 0.1191920 + _b * 0.9503041,
+
+    M16_R = (0.401288 * X + 0.650173 * Y - 0.051461 * Z) * 84.72170373955167,
+    M16_G = (-0.250268 * X + 1.204414 * Y + 0.045854 * Z) * 81.31844233906435,
+    M16_B = (-0.002079 * X + 0.048952 * Y + 0.953127 * Z) * 76.2094256079197,
+
+    R_a_x = pow42[(153.88267531211605 * Math.abs(M16_R)) >> 0],
+    G_a_x = pow42[(153.88267531211605 * Math.abs(M16_G)) >> 0],
+    B_a_x = pow42[(153.88267531211605 * Math.abs(M16_B)) >> 0],
+
+    R_a = Math.sign(M16_R) * 400 * R_a_x / (R_a_x + 27.13),
+    G_a = Math.sign(M16_G) * 400 * G_a_x / (G_a_x + 27.13),
+    B_a = Math.sign(M16_B) * 400 * B_a_x / (B_a_x + 27.13),
+    a = R_a + (-12 * G_a + B_a) / 11,
+    b = (R_a + G_a - 2 * B_a) / 9,
+    h_rad = Math.atan2(b, a),
+    e_t = 0.25 * (cosineCache[(Math.abs(h_rad + 2) * 4096) >> 0] + 3.8),
+    A = N_bb * (2 * R_a + G_a + 0.05 * B_a),
+    t = (5e4 / 13 * N_bb * e_t * Math.sqrt(a * a + b * b) /
+      (R_a + G_a + 1.05 * B_a + 0.305)),
+    M = Math.pow(t, 0.9) * pow66[(A * 790.2777974913714) >> 0],
+
+    M_prime = Math.log(1 + 0.0228 * M) / 0.0228,
+
+    aprime = M_prime * cosineCache[(Math.abs(h_rad) * 4096) >> 0],
+    bprime = M_prime * cosineCache[(Math.abs(h_rad + Math.PI / 2) * 4096) >> 0];
+
+  return [aprime, bprime, CIE_L];
+}
+
 // L_A, Y_b, Y_w
 const conditions = {
   'D65 Outdoor High': [200, 0.8, 1],
@@ -494,6 +539,9 @@ export function colorDelta(p1, p2) {
 
 export function lRGBToColorspace(r, g, b, colorspace, viewingCondition) {
   switch (colorspace) {
+    case 'srgb':
+        lRGBToColorspace = (r, g, b) => lRGBtosRGB(r, g, b).map(a=>a*100);
+      break;
     case 'lrgb':
         lRGBToColorspace = (r, g, b) => [100*r, 100*b, 100*g];
       break;

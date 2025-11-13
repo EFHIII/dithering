@@ -2,7 +2,7 @@ import {
   createSaffronPatternSmooth,
   createSaffronPatternAccurate
 } from '../pattern-generators/create-saffron-pattern.js';
-import { createPattern } from '../pattern-generators/create-pattern.js';
+import { createPattern, randomPattern } from '../pattern-generators/create-pattern.js';
 import { createJoelYliluoma1 } from '../pattern-generators/joel-yliluoma-1.js';
 import { createJoelYliluoma2 } from '../pattern-generators/joel-yliluoma-2.js';
 import { createJoelYliluoma3 } from '../pattern-generators/joel-yliluoma-3.js';
@@ -20,6 +20,7 @@ const patternNames = {
   'JY3': createJoelYliluoma3,
   'greedyAnnealing': createAnnealedPattern,
   'randomAnnealing': createAnnealedPattern2x,
+  'randomPattern': randomPattern,
 };
 
 export function patternFromName(patternName) {

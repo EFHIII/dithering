@@ -22,10 +22,11 @@ export function patternDithering({
   ditherMatrix,
   pattern,
   callback,
-  colorspace
+  colorspace,
+  viewingCondition
 }) {
   const paletteLRGB = palette.map(parseCSSColorString);
-  const paletteInColorSpace = paletteLRGB.map(c => lRGBToColorspace(...c, colorspace));
+  const paletteInColorSpace = paletteLRGB.map(c => lRGBToColorspace(...c, colorspace, viewingCondition));
 
   const width = imgData.width;
   const height = imgData.height;
