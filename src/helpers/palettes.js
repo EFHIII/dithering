@@ -52,6 +52,75 @@ const palettes = {
       colors: ['#000000', '#3C3C3C', '#787878', '#AAAAAA', '#D2D2D2', '#FFFFFF', '#600018', '#ED1C24', '#FF7F27', '#F6AA09', '#F9DD3B', '#FFFABC', '#0EB968', '#13E67B', '#87FF5E', '#0C816E', '#10AEA6', '#13FFBE', '#60F7F2', '#28509E', '#4093E4', '#6B50F6', '#99B1FB', '#780C99', '#AA38B9', '#E09FF9', '#CB007A', '#EC1F80', '#F38DA9', '#684634', '#95682A', '#F8B277', '#A50E1E', '#FA8072', '#E45C1A', '#9C8431', '#C5AD31', '#E8D45F', '#4A6B3A', '#5A944A', '#84C573', '#0F799F', '#BBFAF2', '#7DC7FF', '#4D31B8', '#4A4284', '#7A71C4', '#B5AEF1', '#9B5249', '#D18078', '#FAB6A4', '#DBA463', '#7B6352', '#9C846B', '#D6B594', '#D18051', '#FFC5A5', '#6D643F', '#948C6B', '#CDC59E', '#333941', '#6D758D', '#B3B9D1'],
     },
   },
+  'Lego': {
+    'Mosaic Maker': {
+      name: 'Mosaic Maker',
+      colors: [
+        '#05131D',
+        '#FFFFFF',
+        '#A0A5A9',
+        '#6C6E68',
+        '#F2CD37',
+      ]
+    },
+    'Primaries': {
+      name: 'Primaries',
+      colors: [
+        '#05131D',
+        '#FFFFFF',
+        '#A0A5A9',
+        '#6C6E68',
+        '#C91A09',
+        '#F2CD37',
+        '#0055BF',
+        '#237841',
+      ]
+    },
+    'Very Common': {
+      name: 'Very Common',
+      colors: [
+        '#05131D',
+        '#FFFFFF',
+        '#A0A5A9',
+        '#6C6E68',
+        '#C91A09',
+        '#F2CD37',
+        '#E4CD9E',
+        '#582A12',
+        '#0055BF',
+        '#237841',
+        '#958A73',
+      ]
+    },
+    'Common': {
+      name: 'Common',
+      colors: [
+        '#05131D',
+        '#FFFFFF',
+        '#A0A5A9',
+        '#6C6E68',
+        '#C91A09',
+        '#F2CD37',
+        '#E4CD9E',
+        '#582A12',
+        '#0055BF',
+        '#237841',
+        '#958A73',
+        '#720E0F',
+        '#FE8A18',
+        '#0A3463',
+        '#F8BB3D',
+        '#AA7D55',
+        '#BBE90B',
+        '#008F9B',
+        '#184632',
+        '#A95500',
+        '#078BC9',
+        '#E4ADC8',
+        '#36AEBF',
+      ]
+    },
+  },
   'Simple': {
     'Red/Green/Blue': {
       name: 'Red/Green/Blue',

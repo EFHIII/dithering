@@ -189,6 +189,7 @@ These algorithms all create a list of colors that, when mixed, approximate the d
 
 <a name="SaffronSmooth"></a>
 ### Saffron Smooth
+Saffron Smooth starts by assuming the entire pattern is the closest palette color and iteratively checks if replacing the first n (from n to 1) pattern entries with a different color improves the pattern's overall accuracy. Because it starts be demanding that as many entries as possible are replaced, it inherently disincentivizes colors that are starkly different from entering the pattern unless necessary.
 
 <a name="SaffronAccurate"></a>
 ### Saffron Accurate
@@ -227,4 +228,4 @@ Tools don't dither things but use the same interface for generating informative 
 <a name="Ideal"></a>
 ### Ideal
 
-**Ideal** takes a pattern generating algorithm and for each pixel outputs the blending of all entries in the pattern given for that pixel. This gives an output roughly the same as if you used pattern dithering on the image but with an arbitrarily high resolution and viewed from far away / zoomed out.
+Ideal takes a pattern generating algorithm and for each pixel outputs the blending of all entries in the pattern given for that pixel. This gives an output roughly the same as if you used pattern dithering on the image but with an arbitrarily high resolution and viewed from far away / zoomed out.
