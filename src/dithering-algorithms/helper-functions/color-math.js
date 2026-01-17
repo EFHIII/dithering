@@ -497,6 +497,29 @@ function lRGBToCam16(_r, _g, _b) {
   ];
 }
 
+function lRGBToCIELab(r, g, b) {
+  r = Math.min(1, Math.max(0, r));
+  g = Math.min(1, Math.max(0, g));
+  b = Math.min(1, Math.max(0, b));
+
+  let a = {
+    x: r * 0.4124564 + g * 0.3575761 + b * 0.1804375,
+    y: r * 0.2126729 + g * 0.7151522 + b * 0.0721750,
+    z: r * 0.0193339 + g * 0.1191920 + b * 0.9503041,
+  };
+  // convert CIE XYZ to CIE L*A*B*
+  const Xn = 95.047;
+  const Yn = 100;
+  const Zn = 108.883;
+
+  const f = (t) => ((t > 0.008856) ? Math.pow(t, 1 / 3) : (t / 0.128418 + 16 / 116));
+  return [
+    500 * (f(a.x / Xn) - f(a.y / Yn)),
+    200 * (f(a.y / Yn) - f(a.z / Zn)),
+    116 * f(a.y / Yn) - 16,
+  ];
+}
+
 function lRGBToLuma(r, g, b) {
   r = Math.min(1, Math.max(0, r));
   g = Math.min(1, Math.max(0, g));
@@ -537,23 +560,160 @@ export function colorDelta(p1, p2) {
   return da * da + db * db + dL * dL;
 }
 
+function CIEDE2000(lab1, lab2) {
+  const [a1, b1, L1] = lab1;
+  const [a2, b2, L2] = lab2;
+  // Helper functions
+  const rad2deg = (rad) => (rad * 180) / Math.PI;
+  const deg2rad = (deg) => (deg * Math.PI) / 180;
+  // Weighting factors
+  const kL = 1, kC = 1, kH = 1;
+  // Step 1: Calculate CIELAB values
+  const C1 = Math.sqrt(a1 ** 2 + b1 ** 2);
+  const C2 = Math.sqrt(a2 ** 2 + b2 ** 2);
+  const avgC = (C1 + C2) / 2;
+  const G = 0.5 * (1 - Math.sqrt(avgC ** 7 / (avgC ** 7 + 25 ** 7)));
+  // Step 2: Calculate a', C', h'
+  const a1p = a1 * (1 + G);
+  const a2p = a2 * (1 + G);
+  const C1p = Math.sqrt(a1p ** 2 + b1 ** 2);
+  const C2p = Math.sqrt(a2p ** 2 + b2 ** 2);
+  const norm = v => (v + 360) % 360;
+  const h1p = (b1 === 0 && a1p === 0) ? 0 : norm(rad2deg(Math.atan2(b1, a1p)));
+  const h2p = (b2 === 0 && a2p === 0) ? 0 : norm(rad2deg(Math.atan2(b2, a2p)));
+
+  // Step 3: Calculate ΔL', ΔC', ΔH'
+  const Lp = L2 - L1;
+  const Cp = C2p - C1p;
+  let hp = 0;
+  if (C1p * C2p !== 0) {
+      hp = h2p - h1p;
+      if (hp > 180) {
+          hp -= 360;
+      }
+      else if (hp < -180) {
+          hp += 360;
+      }
+  }
+  const Hp = 2 * Math.sqrt(C1p * C2p) * Math.sin(deg2rad(hp) / 2);
+  // Step 4: Calculate weighting functions
+  const avgLp = (L1 + L2) / 2;
+  const avgCp = (C1p + C2p) / 2;
+  let avghp = (h1p + h2p) / 2;
+  if (Math.abs(h1p - h2p) > 180) {
+      avghp = (avghp + 180) % 360;
+  }
+  const T = 1 - 0.17 * Math.cos(deg2rad(avghp - 30))
+      + 0.24 * Math.cos(deg2rad(2 * avghp))
+      + 0.32 * Math.cos(deg2rad(3 * avghp + 6))
+      - 0.2 * Math.cos(deg2rad(4 * avghp - 63));
+  const SL = 1 + (0.015 * (avgLp - 50) ** 2) / Math.sqrt(20 + (avgLp - 50) ** 2);
+  const SC = 1 + 0.045 * avgCp;
+  const SH = 1 + 0.015 * avgCp * T;
+  // Step 5: Calculate rotation term
+  const θ = 30 * Math.exp(-(((avghp - 275) / 25) ** 2));
+  const RC = 2 * Math.sqrt(avgCp ** 7 / (avgCp ** 7 + 25 ** 7));
+  const RT = -RC * Math.sin(deg2rad(2 * θ));
+  // Final calculation
+  return Math.sqrt((Lp / (kL * SL)) ** 2 +
+      (Cp / (kC * SC)) ** 2 +
+      (Hp / (kH * SH)) ** 2 +
+      RT * (Cp / (kC * SC)) * (Hp / (kH * SH)));
+}
+
+function deltaE_ITP_fromLinearRGB(rgb1, rgb2) {
+  function pqEncode(x) {
+    // SMPTE ST 2084 PQ
+    const m1 = 0.1593017578125;
+    const m2 = 78.84375;
+    const c1 = 0.8359375;
+    const c2 = 18.8515625;
+    const c3 = 18.6875;
+    return Math.pow((c1 + c2 * Math.pow(x, m1)) / (1 + c3 * Math.pow(x, m1)), m2);
+  }
+
+  function rgb2020_to_LMS(r, g, b) {
+    // BT.2020 RGB → LMS (ICtCp forward matrix)
+    return [
+      0.359283, 0.697605, -0.035891,   // L
+      -0.192100, 1.100400, 0.075274,  // M
+      0.007450, 0.074916, 0.843293    // S
+    ].reduce
+      ? null
+      : void 0;
+  }
+
+  function RGB_to_LMS(rgb) {
+    const [r, g, b] = rgb;
+    return [
+      0.359283 * r + 0.697605 * g - 0.035891 * b,
+     -0.192100 * r + 1.100400 * g + 0.075274 * b,
+      0.007450 * r + 0.074916 * g + 0.843293 * b
+    ];
+  }
+
+  function LMS_to_pq(LMS) {
+    return LMS.map(v => pqEncode(Math.max(v, 0)));
+  }
+
+  function pqLMS_to_ICtCp(Lp, Mp, Sp) {
+    const I  = 0.5 * Lp + 0.5 * Mp;
+    const Ct = 1.6137 * Lp - 3.3234 * Mp + 1.7097 * Sp;
+    const Cp = 4.3781 * Lp - 4.2455 * Mp - 0.1326 * Sp;
+    return [I, Ct, Cp];
+  }
+
+  function ICtCp_to_ITP([I, Ct, Cp]) {
+    const T = 0.5 * Ct;
+    const P = 0.5 * Cp;
+    return [I, T, P];
+  }
+
+  function RGB_to_ITP(rgb) {
+    const LMS = RGB_to_LMS(rgb);
+    const pqLMS = LMS_to_pq(LMS);
+    const ICtCp = pqLMS_to_ICtCp(...pqLMS);
+    return ICtCp_to_ITP(ICtCp);
+  }
+
+  const ITP1 = RGB_to_ITP(rgb1);
+  const ITP2 = RGB_to_ITP(rgb2);
+
+  const dI = ITP2[0] - ITP1[0];
+  const dT = ITP2[1] - ITP1[1];
+  const dP = ITP2[2] - ITP1[2];
+
+  return Math.hypot(dI, dT, dP);
+}
+
 export function lRGBToColorspace(r, g, b, colorspace, viewingCondition) {
   switch (colorspace) {
     case 'srgb':
         lRGBToColorspace = (r, g, b) => lRGBtosRGB(r, g, b).map(a=>a*100);
       break;
     case 'lrgb':
-        lRGBToColorspace = (r, g, b) => [100*r, 100*b, 100*g];
+        lRGBToColorspace = (r, g, b) => [r, g, b];//[100*r, 100*b, 100*g];
+        colorDelta = deltaE_ITP_fromLinearRGB;
       break;
     case 'oklrab':
         lRGBToColorspace = lRGBToOKLrab;
+        break;
+    case 'scaled_oklrab':
+        lRGBToColorspace = (r, g, b) => {
+          const c = lRGBToOKLrab(r, g, b);
+          return [c[0], c[1], c[2] * 0.7];
+      };
       break;
     case 'okl_ab':
         lRGBToColorspace = lRGBToOKL_ab;
         break;
     case 'oklab':
         lRGBToColorspace = lRGBToOKLab;
-      break;
+        break;
+    case 'cielab':
+        lRGBToColorspace = lRGBToCIELab;
+        colorDelta = CIEDE2000;
+        break;
     case 'cam16':
       lRGBToColorspace = lRGBToCam16;
       //colorDelta = deltaCam16;
@@ -628,7 +788,7 @@ export function findClosestPaletteColor(pixel, paletteInColorSpace) {
   let minDistance = Infinity;
   let bestIndex = 0;
   for (let i = 0; i < paletteInColorSpace.length; i++) {
-    const distance = deltaHCT(pixel, paletteInColorSpace[i]);
+    const distance = colorDelta(pixel, paletteInColorSpace[i]);
     if (distance < minDistance) {
       minDistance = distance;
       bestIndex = i;

@@ -4,21 +4,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sprite Dithering</title>
+  <title>LEGO Dithering</title>
   <link rel="stylesheet" href="../src/app/style.css">
 
   <meta name="description" content="Dither images with images">
   <meta name="keywords" content="dithering, wplace, generator, art, advanced, Minecraft, mapart, Pico8, mosaic, Rubik's Cube, map art, palette, posterize">
   <meta name="author" content="@EFHIII">
-  <meta property="og:title" content="Sprite Dithering">
+  <meta property="og:title" content="LEGO Dithering">
   <meta property="og:description" content="Dither images with any color palette">
-  <meta property="og:url" content="https://efhiii.github.io/dithering/sprite">
+  <meta property="og:url" content="https://efhiii.github.io/dithering/lego">
   <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1.0" />
 </head>
 
 <body>
-  <h1>Sprite Dithering</h1>
-  <div><a href="/dithering">Simple Version</a></div>
+  <h1>LEGO Dithering</h1>
   <div id="controls">
     <fieldset>
       <legend>General</legend>
@@ -32,26 +31,14 @@
         </select>
       </div>
       <div class="parameters">
-        <label for="outputWidth">Output Width (in sprites)</label>
+        <label for="outputWidth">Output Width (in studs)</label>
         <input type="number" id="outputWidth" name="outputWidth" value=""><br>
-        <label for="outputHeight">Output Height (in sprites)</label>
+        <label for="outputHeight">Output Height (in studs)</label>
         <input type="number" id="outputHeight" name="outputHeight" value="">
       </div>
       <div class="parameters">
-        <label for="imageLoader2">Sprite Sheet</label>
-        <input type="file" id="imageLoader2" name="imageLoader2" accept="image/*">
-      </div>
-      <div class="parameters">
-        <label for="spriteWidth">Sprite Width</label>
-        <input type="number" id="spriteWidth" name="spriteWidth" value="" onchange="processImage()"><br>
-        <label for="spriteHeight">Sprite Height</label>
-        <input type="number" id="spriteHeight" name="spriteHeight" value="" onchange="processImage()">
-      </div>
-      <div class="parameters">
-        <label for="spriteWidth">Processing Sprite Width</label>
-        <input type="number" id="processingSpriteWidth" name="processingSpriteWidth" value="5" onchange="processImage()"><br>
-        <label for="spriteHeight">Processing Sprite Height</label>
-        <input type="number" id="processingSpriteHeight" name="processingSpriteHeight" value="5" onchange="processImage()">
+        <label for="spriteWidth">Stud Width (in pixels)</label>
+        <input type="number" id="processingPatternWidth" name="processingPatternWidth" value="5" onchange="processImage()">
       </div>
       <div class="parameters">
         <label for="colorspace">Colorspace</label>
@@ -60,8 +47,10 @@
           <option value="luma">Luma</option>
           <option value="cam16">CAM16</option>
           <option value="oklrab">OKLrab</option>
+          <option value="scaled_oklrab">OKLrab 0.7L</option>
           <option value="okl_ab">OKL*ab</option>
           <option value="oklab">OKLab</option>
+          <option value="cielab">CIELab</option>
           <option value="lrgb">Linear RGB</option>
           <option value="srgb">sRGB</option>
         </select>
@@ -92,6 +81,8 @@
     </fieldset>
     <fieldset>
       <legend>Palette Preview</legend>
+      <div class="parameters" id="brickPalette">
+      </div>
       <div class="parameters">
         <canvas id="paletteCanvas"></canvas><br>
           <canvas id="paletteCanvas2"></canvas>

@@ -39,6 +39,12 @@ const palettes = {
         '#009B48', '#FFFFFF', '#B71234', '#FFD500', '#0046AD', '#FF5000',
       ],
     },
+    'Rubik\'s brick': {
+      name: 'Rubik\'s brick',
+      colors: [
+        '#009B48', '#FFFFFF', '#B71234', '#FFD500', '#0046AD', '#FF5000', '#000000'
+      ],
+    },
     'gameboy': {
       name: 'Gameboy',
       colors: ['#0f380f', '#306230', '#8bac0f', '#9bbc0f'],

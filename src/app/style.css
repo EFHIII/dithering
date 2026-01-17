@@ -76,3 +76,41 @@ hr {
 .blurb {
   width: 80%;
 }
+
+table {
+  margin: 8px 0;
+  border-collapse: collapse;
+  user-select: none;
+}
+
+th, td {
+  border: 1px solid #000;
+  padding: 0;
+  line-height: 0;
+}
+
+.cell-img, .col-swatch {
+  width: 20px;
+  height: 20px;
+}
+
+.col-swatch {
+  width: 16px;
+  height: 16px;
+  margin: 1px;
+  border: 1px solid #fff;
+  outline: 1px solid #f44;
+}
+
+.cell-img:hover, .col-swatch:hover {
+  outline: 1px solid #fff;
+  cursor: pointer;
+}
+
+.darkened {
+  filter: brightness(30%);
+}
+
+.header-active {
+  outline: 1px solid #4f4;
+}
