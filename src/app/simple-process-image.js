@@ -187,20 +187,22 @@ export function processImage() {
   energyDitherSwapsCanvas.width = width;
   energyDitherSwapsCanvas.height = height;
 
-  targetCanvas.style.width = width+'px';
-  targetCanvas.style.height = height+'px';
-  burkesCanvas.style.width = width+'px';
-  burkesCanvas.style.height = height+'px';
-  patternDitheringCanvas.style.width = width+'px';
-  patternDitheringCanvas.style.height = height+'px';
-  leastErrorScanCanvas.style.width = width+'px';
-  leastErrorScanCanvas.style.height = height+'px';
-  leastErrorFirstCanvas.style.width = width+'px';
-  leastErrorFirstCanvas.style.height = height+'px';
-  energyDitherCanvas.style.width = width+'px';
-  energyDitherCanvas.style.height = height+'px';
-  energyDitherSwapsCanvas.style.width = width+'px';
-  energyDitherSwapsCanvas.style.height = height+'px';
+  const pxRatio = window.devicePixelRatio;
+
+  targetCanvas.style.width = (width / pxRatio)+'px';
+  targetCanvas.style.height = (height / pxRatio)+'px';
+  burkesCanvas.style.width = (width / pxRatio)+'px';
+  burkesCanvas.style.height = (height / pxRatio)+'px';
+  patternDitheringCanvas.style.width = (width / pxRatio)+'px';
+  patternDitheringCanvas.style.height = (height / pxRatio)+'px';
+  leastErrorScanCanvas.style.width = (width / pxRatio)+'px';
+  leastErrorScanCanvas.style.height = (height / pxRatio)+'px';
+  leastErrorFirstCanvas.style.width = (width / pxRatio)+'px';
+  leastErrorFirstCanvas.style.height = (height / pxRatio)+'px';
+  energyDitherCanvas.style.width = (width / pxRatio)+'px';
+  energyDitherCanvas.style.height = (height / pxRatio)+'px';
+  energyDitherSwapsCanvas.style.width = (width / pxRatio)+'px';
+  energyDitherSwapsCanvas.style.height = (height / pxRatio)+'px';
 
   // Get linear image data
   const linearImageData = scaleImageData(originalImgData, width, height);
@@ -259,7 +261,7 @@ export function processImage() {
       kernel,
       kernelSize,
       // Algorithm parameters
-      colorspace: 'hct',
+      colorspace: 'oklrab',
       viewingCondition: viewingCondition.value,
       ditherMatrix: 'voidAndCluster',
       pattern: pattern.value,

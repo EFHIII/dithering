@@ -156,16 +156,18 @@ export function processImage() {
   errorCanvas.width = width;
   errorCanvas.height = height;
 
-  fromCanvas1.style.width = width+'px';
-  fromCanvas1.style.height = height+'px';
-  ditheredCanvas.style.width = width+'px';
-  ditheredCanvas.style.height = height+'px';
-  perceptionCanvas1.style.width = width+'px';
-  perceptionCanvas1.style.height = height+'px';
-  perceptionCanvas2.style.width = width+'px';
-  perceptionCanvas2.style.height = height+'px';
-  errorCanvas.style.width = width+'px';
-  errorCanvas.style.height = height+'px';
+  const pxRatio = window.devicePixelRatio;
+
+  fromCanvas1.style.width = (width / pxRatio)+'px';
+  fromCanvas1.style.height = (height / pxRatio)+'px';
+  ditheredCanvas.style.width = (width / pxRatio)+'px';
+  ditheredCanvas.style.height = (height / pxRatio)+'px';
+  perceptionCanvas1.style.width = (width / pxRatio)+'px';
+  perceptionCanvas1.style.height = (height / pxRatio)+'px';
+  perceptionCanvas2.style.width = (width / pxRatio)+'px';
+  perceptionCanvas2.style.height = (height / pxRatio)+'px';
+  errorCanvas.style.width = (width / pxRatio)+'px';
+  errorCanvas.style.height = (height / pxRatio)+'px';
 
   // Get linear image data
   const linearImageData = scaleImageData(originalImgData, width, height);
