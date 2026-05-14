@@ -46,7 +46,7 @@ export function leastErrorMultiScan({
       }
     }
   }
-  
+
   const B = 1; // bright
   const L = 0.8; // light
   const M = 0.7; // medium
@@ -296,6 +296,47 @@ export function leastErrorMultiScan({
     }
   };
 
+  const alphaBlock = new Float64Array(widthProcessPattern ** 2 * 3);
+  const alphaBlock2 = new Float64Array(widthProcessPattern ** 2 * 3);
+
+  const apply2PiecesPattern = (bg, col1, col2, part1, rotation1, part2, rotation2, pattern = alphaBlock) => {
+    const ind1 = Math.abs(part1);
+    let negativePart1 = false;
+    if(part1 < 0) {
+      negativePart1 = true;
+    }
+    const ind2 = Math.abs(part2);
+    let negativePart2 = false;
+    if(part2 < 0) {
+      negativePart2 = true;
+    }
+    for(let X = 0; X < widthProcessPattern; X++) {
+      for(let Y = 0; Y < widthProcessPattern; Y++) {
+
+        let alpha1 = linearpatternSheetData[
+          (X + ind1 * widthProcessPattern +
+          (Y + rotation1 * widthProcessPattern) * patternCountWidth * widthProcessPattern
+          ) * 3];
+
+        if(negativePart1) alpha1 = 1 - alpha1;
+
+        let alpha2 = linearpatternSheetData[
+          (X + ind2 * widthProcessPattern +
+          (Y + rotation2 * widthProcessPattern) * patternCountWidth * widthProcessPattern
+          ) * 3];
+
+        if(negativePart2) alpha2 = 1 - alpha2;
+
+        const index = (X + Y * widthProcessPattern) * 3;
+
+        pattern[index + 0] = alpha1 * col1[0] + alpha2 * col2[0] + (1 - alpha1 - alpha2) * bg[0];
+        pattern[index + 1] = alpha1 * col1[1] + alpha2 * col2[1] + (1 - alpha1 - alpha2) * bg[1];
+        pattern[index + 2] = alpha1 * col1[2] + alpha2 * col2[2] + (1 - alpha1 - alpha2) * bg[2];
+      }
+    }
+    return pattern;
+  };
+
   const joinPatterns = (patterns) => {
     const ans = [];
     for(let y = 0; y < patterns.length; y++) {
@@ -328,14 +369,12 @@ export function leastErrorMultiScan({
     for(let i = 0; i < trueSourceLRGB.length; i++) {
       sourceLRGB[i] = trueSourceLRGB[i];
       blurredDitheredLRGB[i] = blurredSourceLRGB[i];
-      ditheredLRGB[i] = 0;
+      ditheredLRGB[i] = trueSourceLRGB[i];
     }
     for(let j = 0; j < totalPixels; j++) {
       errorMap[j] = 0;
     }
   };
-
-  const alphaBlock = new Float64Array(widthProcessPattern ** 2 * 3);
 
   const getAlphaBlock = (x, y) => {
     applyAlphaPattern(x, y, alphaBlock, 0, 0);
@@ -427,6 +466,69 @@ export function leastErrorMultiScan({
     }
   }
 
+  const grillPatterns = [];
+  // grills
+  for(let c = 0; c < brickColors[0].length; c++) {
+    for(let c2 = 0; c2 < brickColors[4].length; c2++) {
+      for(let r = 0; r < 4; r++) {
+        const col = legoColorsLRGB[brickColors[0][c]];
+        const col2 = legoColorsLRGB[brickColors[4][c2]];
+
+        const pattern = new Float64Array(widthProcessPattern ** 2 * 3);
+        for(let index = 0; index < pattern.length; index += 3) {
+          pattern[index + 0] = col[0] * M;
+          pattern[index + 1] = col[1] * M;
+          pattern[index + 2] = col[2] * M;
+        }
+
+        applyPiecePattern(col2, pattern, 5, r);
+
+        grillPatterns.push(pattern);
+      }
+    }
+  }
+
+  const leftTrianglePatterns = [];
+  const rightTrianglePatterns = [];
+  const triangleSquares = [];
+  const trianglePatterns = [leftTrianglePatterns, rightTrianglePatterns];
+  // triangles
+  for(let c = 0; c < brickColors[0].length; c++) {
+    for(let c2 = 0; c2 < brickColors[6].length; c2++) {
+      for(let r = 0; r < 4; r++) {
+        for(let s = 0; s < 2; s++) {
+          const col = legoColorsLRGB[brickColors[0][c]];
+          const col2 = legoColorsLRGB[brickColors[6][c2]];
+
+          const pattern = new Float64Array(widthProcessPattern ** 2 * 3);
+          for(let index = 0; index < pattern.length; index += 3) {
+            pattern[index + 0] = col[0] * M;
+            pattern[index + 1] = col[1] * M;
+            pattern[index + 2] = col[2] * M;
+          }
+
+          applyPiecePattern(col2, pattern, 11 + s, r);
+
+          trianglePatterns[s].push(pattern);
+        }
+      }
+    }
+  }
+
+  for(let c = 0; c < brickColors[6].length; c++) {
+    const col = legoColorsLRGB[brickColors[6][c]];
+
+    const pattern = new Float64Array(widthProcessPattern ** 2 * 3);
+    for(let index = 0; index < pattern.length; index += 3) {
+      pattern[index + 0] = col[0];
+      pattern[index + 1] = col[1];
+      pattern[index + 2] = col[2];
+    }
+
+    triangleSquares.push(pattern);
+  }
+
+
   const patternMap = new Array(totalPixels);
   for(let i = 0; i < patternMap.length; i++) {
     patternMap[i] = {
@@ -443,62 +545,142 @@ export function leastErrorMultiScan({
   const patterns1x1 = [...squarePatterns, ...circlePatterns, ...halfCirclePatterns,...quarterCirclePatterns];
 
   let changed = true;
-  /*
-  do {
-    changed = false;
 
-    for(let i = 0; i < totalStuds; i++) {
-      if(performance.now() - t > 1000) {
-        callback(linearDatatoImageData(ditheredLRGB, width, height));
-        t = performance.now();
-      }
-
-      const best = studOrder[i];
-
-      const x = best[0];
-      const y = best[1];
-
-      let best1x1Score = Infinity;
-      let bestPattern = 0;
-
-      for(let j = 0; j < squarePatterns.length; j++) {
-        const score = scorePattern(x, y, squarePatterns[j], 1, 1);
-        if(score < best1x1Score) {
-          best1x1Score = score;
-          bestPattern = j;
-        }
-      }
-
-      if(bestPattern !== patternMap[i].choice.index) {
-        for(let X = 0; X < widthProcessPattern; X++) {
-          for(let Y = 0; Y < widthProcessPattern; Y++) {
-            const i = x * widthProcessPattern + X + (y * widthProcessPattern + Y) * width;
-            const i3 = i * 3;
-            const c3 = (X + Y * widthProcessPattern) * 3;
-            ditheredLRGB[i3 + 0] = squarePatterns[bestPattern][c3 + 0];
-            ditheredLRGB[i3 + 1] = squarePatterns[bestPattern][c3 + 1];
-            ditheredLRGB[i3 + 2] = squarePatterns[bestPattern][c3 + 2];
-          }
-        }
-
-        applyPattern(x, y, squarePatterns[bestPattern]);
-        patternMap[i].choice.index = bestPattern;
-        changed = true;
-      }
-    }
-  } while (changed);
-  */
   callback(linearDatatoImageData(ditheredLRGB, width, height));
 
-  // find best 2/3 x 1 pattern vertical
-  console.log('phase 1A:');
+  console.log('phase Grill 1:');
   resetImage();
 
   let firstPass = true;
+  let passCount = 0;
 
-  if(circlePatterns.length > 0) {
-    do {
-      changed = false;
+  if(grillPatterns.length > 0) {
+    for(let m = 0; m < 2; m++) {
+      resetImage();
+
+      let firstPass = true;
+      let passCount = 0;
+
+      do {
+        changed = false;
+        passCount++;
+
+        for(let i = 0; i < totalStuds; i++) {
+          const best = studOrder[i];
+
+          const x = best[0];
+          const y = best[1];
+
+          if(y % 2 === m || y >= heightStuds - 1) continue;
+
+          if(performance.now() - t > 1000) {
+            callback(linearDatatoImageData(ditheredLRGB, width, height));
+            t = performance.now();
+          }
+
+          let best1x1Score = Infinity;
+          let bestPattern = 0;
+          let best1x1SquareScore = Infinity;
+          let bestSquarePattern = 0;
+          let best1x1SquareScore2 = Infinity;
+          let bestSquarePattern2 = 0;
+          let best1x1GrillScore = Infinity;
+          let bestGrillPattern = 0;
+
+          const grillColors = brickColors[4].length;
+          for(let j = 0; j < brickColors[0].length; j++) {
+            let score = scorePattern(x, y, squarePatterns[j]);
+
+            if(score < best1x1SquareScore) {
+              best1x1SquareScore = score;
+              bestSquarePattern = j;
+            }
+          }
+
+          for(let j = 0; j < brickColors[0].length; j++) {
+            let score = scorePattern(x, y, [
+              ...squarePatterns[bestSquarePattern],
+              ...squarePatterns[j]
+            ], 1, 2);
+
+            if(score < best1x1SquareScore2) {
+              best1x1SquareScore2 = score;
+              bestSquarePattern2 = j * grillColors * 4;
+            }
+          }
+
+          for(let j = 0; j < brickColors[4].length; j++) {
+            let score = scorePattern(x, y, [
+              ...grillPatterns[bestSquarePattern * grillColors * 4 + j * 4 + 2],
+              ...grillPatterns[bestSquarePattern2 + j * 4 + 0],
+            ], 1, 2);
+
+            if(score < best1x1GrillScore) {
+              best1x1GrillScore = score;
+              bestGrillPattern = j * 4;
+            }
+          }
+
+          best1x1SquareScore = Infinity;
+
+          for(let j = 0; j < brickColors[0].length; j++) {
+            let score = scorePattern(x, y, [
+              ...grillPatterns[j * grillColors * 4 + bestGrillPattern + 2],
+              ...grillPatterns[bestSquarePattern2 + bestGrillPattern + 0],
+            ], 1, 2);
+
+            if(score < best1x1SquareScore) {
+              best1x1SquareScore = score;
+              bestSquarePattern = j * grillColors * 4;
+            }
+          }
+
+          for(let j = 0; j < brickColors[0].length; j++) {
+            let score = scorePattern(x, y, [
+              ...grillPatterns[bestSquarePattern + bestGrillPattern + 2],
+              ...grillPatterns[j * grillColors * 4 + bestGrillPattern + 0],
+            ], 1, 2);
+
+            if(score < best1x1Score) {
+              best1x1Score = score;
+              bestSquarePattern2 = j * grillColors * 4;
+            }
+          }
+
+          if(firstPass || best1x1Score < 0) {
+            for(let X = 0; X < widthProcessPattern; X++) {
+              for(let Y = 0; Y < widthProcessPattern; Y++) {
+                let i = x * widthProcessPattern + X + (y * widthProcessPattern + Y) * width;
+                let i3 = i * 3;
+                const c3 = (X + Y * widthProcessPattern) * 3;
+                ditheredLRGB[i3 + 0] = grillPatterns[bestSquarePattern + bestGrillPattern + 2][c3 + 0];
+                ditheredLRGB[i3 + 1] = grillPatterns[bestSquarePattern + bestGrillPattern + 2][c3 + 1];
+                ditheredLRGB[i3 + 2] = grillPatterns[bestSquarePattern + bestGrillPattern + 2][c3 + 2];
+
+                i = x * widthProcessPattern + X + ((y + 1) * widthProcessPattern + Y) * width;
+                i3 = i * 3;
+                ditheredLRGB[i3 + 0] = grillPatterns[bestSquarePattern2 + bestGrillPattern + 0][c3 + 0];
+                ditheredLRGB[i3 + 1] = grillPatterns[bestSquarePattern2 + bestGrillPattern + 0][c3 + 1];
+                ditheredLRGB[i3 + 2] = grillPatterns[bestSquarePattern2 + bestGrillPattern + 0][c3 + 2];
+              }
+            }
+
+            applyPattern(x, y, grillPatterns[bestSquarePattern + bestGrillPattern + 2]);
+            applyPattern(x, y + 1, grillPatterns[bestSquarePattern2 + bestGrillPattern + 0]);
+
+            //patternMap[i].choice.index = bestPattern;
+            changed = true;
+
+            if(passCount > 4) {
+              if(i > 1) i -= 2;
+              if(i > widthStuds) i -= widthStuds;
+            }
+          }
+        }
+        firstPass = false;
+      } while (changed);
+
+      callback(linearDatatoImageData(ditheredLRGB, width, height));
 
       for(let i = 0; i < totalStuds; i++) {
         const best = studOrder[i];
@@ -506,64 +688,146 @@ export function leastErrorMultiScan({
         const x = best[0];
         const y = best[1];
 
-        if(performance.now() - t > 1000) {
-          callback(linearDatatoImageData(ditheredLRGB, width, height));
-          t = performance.now();
-        }
+        if(y % 2 === m) continue;
 
-        let best1x1Score = Infinity;
-        let bestPattern = 0;
-
-        for(let j = 0; j < circlePatterns.length; j++) {
-          let score = scorePattern(x, y, circlePatterns[j]);
-
-          if(score < best1x1Score) {
-            best1x1Score = score;
-            bestPattern = j;
-          }
-        }
-
-        if(firstPass || best1x1Score < 0) {
-          for(let X = 0; X < widthProcessPattern; X++) {
-            for(let Y = 0; Y < widthProcessPattern; Y++) {
-              const i = x * widthProcessPattern + X + (y * widthProcessPattern + Y) * width;
-              const i3 = i * 3;
-              const c3 = (X + Y * widthProcessPattern) * 3;
-              ditheredLRGB[i3 + 0] = circlePatterns[bestPattern][c3 + 0];
-              ditheredLRGB[i3 + 1] = circlePatterns[bestPattern][c3 + 1];
-              ditheredLRGB[i3 + 2] = circlePatterns[bestPattern][c3 + 2];
-            }
-          }
-
-          applyPattern(x, y, circlePatterns[bestPattern]);
-
-          patternMap[i].choice.index = bestPattern;
-          changed = true;
-        }
+        patternMap[i].options['1x2'].push(getPattern(x, y, 1, 2));
       }
-      firstPass = false;
-    } while (changed);
-
-    callback(linearDatatoImageData(ditheredLRGB, width, height));
-
-    for(let i = 0; i < totalStuds; i++) {
-      const best = studOrder[i];
-
-      const x = best[0];
-      const y = best[1];
-
-      //patternMap[i].options['1x1'].push(getPattern(x, y, 1, 1));
-      patternMap[i].options['1x1'].push(circlePatterns[patternMap[i].choice.index]);
     }
   }
-  console.log('phase 1B:');
+
+  console.log('phase Grill 2:');
   resetImage();
 
   firstPass = true;
+  passCount = 0;
 
-  if(halfCirclePatterns.length > 0) {
-    do {
-      changed = false;
+  if(grillPatterns.length > 0) {
+    for(let m = 0; m < 2; m++) {
+      resetImage();
+
+      let firstPass = true;
+      let passCount = 0;
+
+      do {
+        changed = false;
+        passCount++;
+
+        for(let i = 0; i < totalStuds; i++) {
+          const best = studOrder[i];
+
+          const x = best[0];
+          const y = best[1];
+
+          if(x % 2 === m || x >= widthStuds - 1) continue;
+
+          if(performance.now() - t > 1000) {
+            callback(linearDatatoImageData(ditheredLRGB, width, height));
+            t = performance.now();
+          }
+
+          let best1x1Score = Infinity;
+          let bestPattern = 0;
+          let best1x1SquareScore = Infinity;
+          let bestSquarePattern = 0;
+          let best1x1SquareScore2 = Infinity;
+          let bestSquarePattern2 = 0;
+          let best1x1GrillScore = Infinity;
+          let bestGrillPattern = 0;
+
+          const grillColors = brickColors[4].length;
+          for(let j = 0; j < brickColors[0].length; j++) {
+            let score = scorePattern(x, y, squarePatterns[j]);
+
+            if(score < best1x1SquareScore) {
+              best1x1SquareScore = score;
+              bestSquarePattern = j;
+            }
+          }
+
+          for(let j = 0; j < brickColors[0].length; j++) {
+            let score = scorePattern(x, y, joinPatterns([[
+              squarePatterns[bestSquarePattern],
+              squarePatterns[j]
+            ]]), 2, 1);
+
+            if(score < best1x1SquareScore2) {
+              best1x1SquareScore2 = score;
+              bestSquarePattern2 = j * grillColors * 4;
+            }
+          }
+
+          for(let j = 0; j < brickColors[4].length; j++) {
+            let score = scorePattern(x, y, joinPatterns([[
+              grillPatterns[bestSquarePattern * grillColors * 4 + j * 4 + 1],
+              grillPatterns[bestSquarePattern2 + j * 4 + 3],
+            ]]), 2, 1);
+
+            if(score < best1x1GrillScore) {
+              best1x1GrillScore = score;
+              bestGrillPattern = j * 4;
+            }
+          }
+
+          best1x1SquareScore = Infinity;
+
+          for(let j = 0; j < brickColors[0].length; j++) {
+            let score = scorePattern(x, y, joinPatterns([[
+              grillPatterns[j * grillColors * 4 + bestGrillPattern + 1],
+              grillPatterns[bestSquarePattern2 + bestGrillPattern + 3],
+            ]]), 2, 1);
+
+            if(score < best1x1SquareScore) {
+              best1x1SquareScore = score;
+              bestSquarePattern = j * grillColors * 4;
+            }
+          }
+
+          for(let j = 0; j < brickColors[0].length; j++) {
+            let score = scorePattern(x, y, joinPatterns([[
+              grillPatterns[bestSquarePattern + bestGrillPattern + 1],
+              grillPatterns[j * grillColors * 4 + bestGrillPattern + 3],
+            ]]), 2, 1);
+
+            if(score < best1x1Score) {
+              best1x1Score = score;
+              bestSquarePattern2 = j * grillColors * 4;
+            }
+          }
+
+          if(firstPass || best1x1Score < 0) {
+            for(let X = 0; X < widthProcessPattern; X++) {
+              for(let Y = 0; Y < widthProcessPattern; Y++) {
+                let i = x * widthProcessPattern + X + (y * widthProcessPattern + Y) * width;
+                let i3 = i * 3;
+                const c3 = (X + Y * widthProcessPattern) * 3;
+                ditheredLRGB[i3 + 0] = grillPatterns[bestSquarePattern + bestGrillPattern + 1][c3 + 0];
+                ditheredLRGB[i3 + 1] = grillPatterns[bestSquarePattern + bestGrillPattern + 1][c3 + 1];
+                ditheredLRGB[i3 + 2] = grillPatterns[bestSquarePattern + bestGrillPattern + 1][c3 + 2];
+
+                i = (x + 1) * widthProcessPattern + X + (y * widthProcessPattern + Y) * width;
+                i3 = i * 3;
+                ditheredLRGB[i3 + 0] = grillPatterns[bestSquarePattern2 + bestGrillPattern + 3][c3 + 0];
+                ditheredLRGB[i3 + 1] = grillPatterns[bestSquarePattern2 + bestGrillPattern + 3][c3 + 1];
+                ditheredLRGB[i3 + 2] = grillPatterns[bestSquarePattern2 + bestGrillPattern + 3][c3 + 2];
+              }
+            }
+
+            applyPattern(x, y, grillPatterns[bestSquarePattern + bestGrillPattern + 1]);
+            applyPattern(x + 1, y, grillPatterns[bestSquarePattern2 + bestGrillPattern + 3]);
+
+            //patternMap[i].choice.index = bestPattern;
+            changed = true;
+
+            if(passCount > 4) {
+              if(i > 1) i -= 2;
+              if(i > widthStuds) i -= widthStuds;
+            }
+          }
+        }
+        firstPass = false;
+      } while (changed);
+
+      callback(linearDatatoImageData(ditheredLRGB, width, height));
 
       for(let i = 0; i < totalStuds; i++) {
         const best = studOrder[i];
@@ -571,131 +835,433 @@ export function leastErrorMultiScan({
         const x = best[0];
         const y = best[1];
 
-        if(performance.now() - t > 1000) {
-          callback(linearDatatoImageData(ditheredLRGB, width, height));
-          t = performance.now();
-        }
+        if(x % 2 === m) continue;
 
-        let best1x1Score = Infinity;
-        let bestPattern = 0;
-
-        for(let j = 0; j < halfCirclePatterns.length; j++) {
-          let score = scorePattern(x, y, halfCirclePatterns[j]);
-
-          if(score < best1x1Score) {
-            best1x1Score = score;
-            bestPattern = j;
-          }
-        }
-
-        if(firstPass || best1x1Score < 0) {
-          for(let X = 0; X < widthProcessPattern; X++) {
-            for(let Y = 0; Y < widthProcessPattern; Y++) {
-              const i = x * widthProcessPattern + X + (y * widthProcessPattern + Y) * width;
-              const i3 = i * 3;
-              const c3 = (X + Y * widthProcessPattern) * 3;
-              ditheredLRGB[i3 + 0] = halfCirclePatterns[bestPattern][c3 + 0];
-              ditheredLRGB[i3 + 1] = halfCirclePatterns[bestPattern][c3 + 1];
-              ditheredLRGB[i3 + 2] = halfCirclePatterns[bestPattern][c3 + 2];
-            }
-          }
-
-          applyPattern(x, y, halfCirclePatterns[bestPattern]);
-
-          patternMap[i].choice.index = bestPattern;
-          changed = true;
-        }
+        patternMap[i].options['2x1'].push(getPattern(x, y, 2, 1));
       }
-      firstPass = false;
-    } while (changed);
-
-    callback(linearDatatoImageData(ditheredLRGB, width, height));
-
-    for(let i = 0; i < totalStuds; i++) {
-      const best = studOrder[i];
-
-      const x = best[0];
-      const y = best[1];
-
-      //patternMap[i].options['1x1'].push(getPattern(x, y, 1, 1));
-      patternMap[i].options['1x1'].push(halfCirclePatterns[patternMap[i].choice.index]);
     }
   }
 
-  console.log('phase 1C:');
+  console.log('phase Triangle 1:');
   resetImage();
 
   firstPass = true;
+  passCount = 0;
 
-  if(quarterCirclePatterns.length > 0) {
-    do {
-      changed = false;
+  if(trianglePatterns[0].length > 0) {
+    for(let mx = 0; mx < 2; mx++) {
+      for(let my = 0; my < 2; my++) {
+        resetImage();
 
-      for(let i = 0; i < totalStuds; i++) {
-        const best = studOrder[i];
+        let firstPass = true;
+        let passCount = 0;
 
-        const x = best[0];
-        const y = best[1];
+        do {
+          changed = false;
+          passCount++;
 
-        if(performance.now() - t > 1000) {
-          callback(linearDatatoImageData(ditheredLRGB, width, height));
-          t = performance.now();
-        }
+          for(let i = 0; i < totalStuds; i++) {
+            const best = studOrder[i];
 
-        let best1x1Score = Infinity;
-        let bestPattern = 0;
+            const x = best[0];
+            const y = best[1];
 
-        for(let j = 0; j < quarterCirclePatterns.length; j++) {
-          let score = scorePattern(x, y, quarterCirclePatterns[j]);
+            if(x % 2 === mx || y % 2 === my || x >= widthStuds - 1 || y >= heightStuds - 1) continue;
 
-          if(score < best1x1Score) {
-            best1x1Score = score;
-            bestPattern = j;
-          }
-        }
+            if(performance.now() - t > 1000) {
+              callback(linearDatatoImageData(ditheredLRGB, width, height));
+              t = performance.now();
+            }
 
-        if(firstPass || best1x1Score < 0) {
-          for(let X = 0; X < widthProcessPattern; X++) {
-            for(let Y = 0; Y < widthProcessPattern; Y++) {
-              const i = x * widthProcessPattern + X + (y * widthProcessPattern + Y) * width;
-              const i3 = i * 3;
-              const c3 = (X + Y * widthProcessPattern) * 3;
-              ditheredLRGB[i3 + 0] = quarterCirclePatterns[bestPattern][c3 + 0];
-              ditheredLRGB[i3 + 1] = quarterCirclePatterns[bestPattern][c3 + 1];
-              ditheredLRGB[i3 + 2] = quarterCirclePatterns[bestPattern][c3 + 2];
+            let best1x1Score = Infinity;
+            let bestPattern = 0;
+            let best1x1SquareScore = Infinity;
+            let bestSquarePattern = 0;
+            let best1x1SquareScore2 = Infinity;
+            let bestSquarePattern2 = 0;
+            let bestTriScore1 = Infinity;
+            let bestTriPattern1 = 0;
+            let bestTriScore2 = Infinity;
+            let bestTriPattern2 = 0;
+
+            const triColors = brickColors[6].length;
+            for(let j = 0; j < brickColors[0].length; j++) {
+              let score = scorePattern(x, y, squarePatterns[j]);
+
+              if(score < best1x1SquareScore) {
+                best1x1SquareScore = score;
+                bestSquarePattern = j;
+              }
+            }
+
+            for(let j = 0; j < brickColors[0].length; j++) {
+              let score = scorePattern(x, y, joinPatterns([
+                [squarePatterns[bestSquarePattern], squarePatterns[bestSquarePattern]],
+                [squarePatterns[j], squarePatterns[j]]
+              ]), 2, 2);
+
+              if(score < best1x1SquareScore2) {
+                best1x1SquareScore2 = score;
+                bestSquarePattern2 = j;
+              }
+            }
+
+            for(let j = 0; j < brickColors[6].length; j++) {
+              let score = scorePattern(x, y, joinPatterns([
+                [
+                  triangleSquares[j],
+                  leftTrianglePatterns[bestSquarePattern * triColors * 4 + j * 4 + 1]
+                ],
+                [
+                  rightTrianglePatterns[bestSquarePattern2 * triColors * 4 + j * 4 + 1],
+                  squarePatterns[bestSquarePattern2]
+                ],
+              ]), 2, 2);
+
+              if(score < bestTriScore1) {
+                bestTriScore1 = score;
+                bestTriPattern1 = j;
+              }
+            }
+
+            // apply2PiecesPattern = (bg, col1, col2, part1, rotation1, part2, rotation2, pattern = alphaBlock)
+
+            for(let j = 0; j < brickColors[6].length; j++) {
+              let score = scorePattern(x, y, joinPatterns([
+                [
+                  triangleSquares[bestTriPattern1],
+                  apply2PiecesPattern(legoColorsLRGB[brickColors[0][bestSquarePattern]], legoColorsLRGB[brickColors[6][bestTriPattern1]], legoColorsLRGB[brickColors[6][j]], 11, 1, 12, 3)
+                ],
+                [
+                  apply2PiecesPattern(legoColorsLRGB[brickColors[0][bestSquarePattern2]], legoColorsLRGB[brickColors[6][bestTriPattern1]], legoColorsLRGB[brickColors[6][j]], 12, 1, 11, 3, alphaBlock2),
+                  triangleSquares[j]
+                ],
+              ]), 2, 2);
+
+              if(score < bestTriScore2) {
+                bestTriScore2 = score;
+                bestTriPattern2 = j;
+              }
+            }
+
+            best1x1SquareScore = Infinity;
+
+            for(let j = 0; j < brickColors[0].length; j++) {
+              let score = scorePattern(x, y, joinPatterns([
+                [
+                  triangleSquares[bestTriPattern1],
+                  apply2PiecesPattern(legoColorsLRGB[brickColors[0][j]], legoColorsLRGB[brickColors[6][bestTriPattern1]], legoColorsLRGB[brickColors[6][bestTriPattern2]], 11, 1, 12, 3)
+                ],
+                [
+                  apply2PiecesPattern(legoColorsLRGB[brickColors[0][bestSquarePattern2]], legoColorsLRGB[brickColors[6][bestTriPattern1]], legoColorsLRGB[brickColors[6][bestTriPattern2]], 12, 1, 11, 3, alphaBlock2),
+                  triangleSquares[bestTriPattern2]
+                ],
+              ]), 2, 2);
+
+              if(score < best1x1SquareScore) {
+                best1x1SquareScore = score;
+                bestSquarePattern = j;
+              }
+            }
+
+            for(let j = 0; j < brickColors[0].length; j++) {
+              let score = scorePattern(x, y, joinPatterns([
+                [
+                  triangleSquares[bestTriPattern1],
+                  apply2PiecesPattern(legoColorsLRGB[brickColors[0][bestSquarePattern]], legoColorsLRGB[brickColors[6][bestTriPattern1]], legoColorsLRGB[brickColors[6][bestTriPattern2]], 11, 1, 12, 3)
+                ],
+                [
+                  apply2PiecesPattern(legoColorsLRGB[brickColors[0][j]], legoColorsLRGB[brickColors[6][bestTriPattern1]], legoColorsLRGB[brickColors[6][bestTriPattern2]], 12, 1, 11, 3, alphaBlock2),
+                  triangleSquares[bestTriPattern2]
+                ],
+              ]), 2, 2);
+
+              if(score < best1x1Score) {
+                best1x1Score = score;
+                bestSquarePattern2 = j;
+              }
+            }
+
+            if(firstPass || best1x1Score < 0) {
+              for(let ox = 0; ox < 2; ox++) {
+                for(let oy = 0; oy < 2; oy++) {
+
+                  let thisPattern;
+
+                  switch (ox + oy * 2) {
+                    case 0:
+                      thisPattern = triangleSquares[bestTriPattern1];
+                      break;
+                    case 1:
+                      thisPattern = apply2PiecesPattern(legoColorsLRGB[brickColors[0][bestSquarePattern]], legoColorsLRGB[brickColors[6][bestTriPattern1]], legoColorsLRGB[brickColors[6][bestTriPattern2]], 11, 1, 12, 3);
+                      break;
+                    case 2:
+                      thisPattern = apply2PiecesPattern(legoColorsLRGB[brickColors[0][bestSquarePattern2]], legoColorsLRGB[brickColors[6][bestTriPattern1]], legoColorsLRGB[brickColors[6][bestTriPattern2]], 12, 1, 11, 3, alphaBlock2);
+                      break;
+                    case 3:
+                      thisPattern = triangleSquares[bestTriPattern2];
+                      break;
+                  }
+
+                  for(let X = 0; X < widthProcessPattern; X++) {
+                    for(let Y = 0; Y < widthProcessPattern; Y++) {
+                      let i = (x + ox) * widthProcessPattern + X + ((y + oy) * widthProcessPattern + Y) * width;
+                      let i3 = i * 3;
+                      const c3 = (X + Y * widthProcessPattern) * 3;
+                      ditheredLRGB[i3 + 0] = thisPattern[c3 + 0];
+                      ditheredLRGB[i3 + 1] = thisPattern[c3 + 1];
+                      ditheredLRGB[i3 + 2] = thisPattern[c3 + 2];
+                    }
+                  }
+
+                  applyPattern(x + ox, y + oy, thisPattern);
+                }
+              }
+
+              //patternMap[i].choice.index = bestPattern;
+              changed = true;
+
+              if(passCount > 4) {
+                if(i > 1) i -= 2;
+                if(i > widthStuds) i -= widthStuds;
+              }
             }
           }
+          firstPass = false;
+        } while (changed);
 
-          applyPattern(x, y, quarterCirclePatterns[bestPattern]);
+        callback(linearDatatoImageData(ditheredLRGB, width, height));
 
-          patternMap[i].choice.index = bestPattern;
-          changed = true;
+        for(let i = 0; i < totalStuds; i++) {
+          const best = studOrder[i];
+
+          const x = best[0];
+          const y = best[1];
+
+          if(x % 2 === mx || y % 2 === my || x >= widthStuds - 1 || y >= heightStuds - 1) continue;
+
+          patternMap[i].options['2x2'].push(getPattern(x, y, 2, 2));
         }
       }
-      firstPass = false;
-    } while (changed);
-
-    callback(linearDatatoImageData(ditheredLRGB, width, height));
-
-    for(let i = 0; i < totalStuds; i++) {
-      const best = studOrder[i];
-
-      const x = best[0];
-      const y = best[1];
-
-      //patternMap[i].options['1x1'].push(getPattern(x, y, 1, 1));
-      patternMap[i].options['1x1'].push(quarterCirclePatterns[patternMap[i].choice.index]);
     }
   }
 
-  console.log('phase 1D:');
+
+  console.log('phase Triangle 2:');
   resetImage();
 
   firstPass = true;
+  passCount = 0;
+
+  if(trianglePatterns[0].length > 0) {
+    for(let mx = 0; mx < 2; mx++) {
+      for(let my = 0; my < 2; my++) {
+        resetImage();
+
+        let firstPass = true;
+        let passCount = 0;
+
+        do {
+          changed = false;
+          passCount++;
+
+          for(let i = 0; i < totalStuds; i++) {
+            const best = studOrder[i];
+
+            const x = best[0];
+            const y = best[1];
+
+            if(x % 2 === mx || y % 2 === my || x >= widthStuds - 1 || y >= heightStuds - 1) continue;
+
+            if(performance.now() - t > 1000) {
+              callback(linearDatatoImageData(ditheredLRGB, width, height));
+              t = performance.now();
+            }
+
+            let best1x1Score = Infinity;
+            let bestPattern = 0;
+            let best1x1SquareScore = Infinity;
+            let bestSquarePattern = 0;
+            let best1x1SquareScore2 = Infinity;
+            let bestSquarePattern2 = 0;
+            let bestTriScore1 = Infinity;
+            let bestTriPattern1 = 0;
+            let bestTriScore2 = Infinity;
+            let bestTriPattern2 = 0;
+
+            const triColors = brickColors[6].length;
+            for(let j = 0; j < brickColors[0].length; j++) {
+              let score = scorePattern(x, y, squarePatterns[j]);
+
+              if(score < best1x1SquareScore) {
+                best1x1SquareScore = score;
+                bestSquarePattern = j;
+              }
+            }
+
+            for(let j = 0; j < brickColors[0].length; j++) {
+              let score = scorePattern(x, y, joinPatterns([
+                [squarePatterns[bestSquarePattern], squarePatterns[bestSquarePattern]],
+                [squarePatterns[j], squarePatterns[j]]
+              ]), 2, 2);
+
+              if(score < best1x1SquareScore2) {
+                best1x1SquareScore2 = score;
+                bestSquarePattern2 = j;
+              }
+            }
+
+            for(let j = 0; j < brickColors[6].length; j++) {
+              let score = scorePattern(x, y, joinPatterns([
+                [
+                  rightTrianglePatterns[bestSquarePattern * triColors * 4 + j * 4 + 2],
+                  triangleSquares[j],
+                ],
+                [
+                  squarePatterns[bestSquarePattern2],
+                  leftTrianglePatterns[bestSquarePattern2 * triColors * 4 + j * 4 + 2],
+                ],
+              ]), 2, 2);
+
+              if(score < bestTriScore1) {
+                bestTriScore1 = score;
+                bestTriPattern1 = j;
+              }
+            }
+
+            // apply2PiecesPattern = (bg, col1, col2, part1, rotation1, part2, rotation2, pattern = alphaBlock)
+
+            for(let j = 0; j < brickColors[6].length; j++) {
+              let score = scorePattern(x, y, joinPatterns([
+                [
+                  apply2PiecesPattern(legoColorsLRGB[brickColors[0][bestSquarePattern]], legoColorsLRGB[brickColors[6][bestTriPattern1]], legoColorsLRGB[brickColors[6][j]], 12, 2, 11, 0),
+                  triangleSquares[bestTriPattern1],
+                ],
+                [
+                  triangleSquares[j],
+                  apply2PiecesPattern(legoColorsLRGB[brickColors[0][bestSquarePattern2]], legoColorsLRGB[brickColors[6][bestTriPattern1]], legoColorsLRGB[brickColors[6][j]], 11, 2, 12, 0, alphaBlock2),
+                ],
+              ]), 2, 2);
+
+              if(score < bestTriScore2) {
+                bestTriScore2 = score;
+                bestTriPattern2 = j;
+              }
+            }
+
+            best1x1SquareScore = Infinity;
+
+            for(let j = 0; j < brickColors[0].length; j++) {
+              let score = scorePattern(x, y, joinPatterns([
+                [
+                  apply2PiecesPattern(legoColorsLRGB[brickColors[0][j]], legoColorsLRGB[brickColors[6][bestTriPattern1]], legoColorsLRGB[brickColors[6][bestTriPattern2]], 12, 2, 11, 0),
+                  triangleSquares[bestTriPattern1],
+                ],
+                [
+                  triangleSquares[bestTriPattern2],
+                  apply2PiecesPattern(legoColorsLRGB[brickColors[0][bestSquarePattern2]], legoColorsLRGB[brickColors[6][bestTriPattern1]], legoColorsLRGB[brickColors[6][bestTriPattern2]], 11, 2, 12, 0, alphaBlock2),
+                ],
+              ]), 2, 2);
+
+              if(score < best1x1SquareScore) {
+                best1x1SquareScore = score;
+                bestSquarePattern = j;
+              }
+            }
+
+            for(let j = 0; j < brickColors[0].length; j++) {
+              let score = scorePattern(x, y, joinPatterns([
+                [
+                  apply2PiecesPattern(legoColorsLRGB[brickColors[0][bestSquarePattern]], legoColorsLRGB[brickColors[6][bestTriPattern1]], legoColorsLRGB[brickColors[6][bestTriPattern2]], 12, 2, 11, 0),
+                  triangleSquares[bestTriPattern1],
+                ],
+                [
+                  triangleSquares[bestTriPattern2],
+                  apply2PiecesPattern(legoColorsLRGB[brickColors[0][j]], legoColorsLRGB[brickColors[6][bestTriPattern1]], legoColorsLRGB[brickColors[6][bestTriPattern2]], 11, 2, 12, 0, alphaBlock2),
+                ],
+              ]), 2, 2);
+
+              if(score < best1x1Score) {
+                best1x1Score = score;
+                bestSquarePattern2 = j;
+              }
+            }
+
+            if(firstPass || best1x1Score < 0) {
+              for(let ox = 0; ox < 2; ox++) {
+                for(let oy = 0; oy < 2; oy++) {
+
+                  let thisPattern;
+
+                  switch (ox + oy * 2) {
+                    case 0:
+                      thisPattern = apply2PiecesPattern(legoColorsLRGB[brickColors[0][bestSquarePattern]], legoColorsLRGB[brickColors[6][bestTriPattern1]], legoColorsLRGB[brickColors[6][bestTriPattern2]], 12, 2, 11, 0);
+                      break;
+                    case 1:
+                      thisPattern = triangleSquares[bestTriPattern1];
+                      break;
+                    case 2:
+                      thisPattern = triangleSquares[bestTriPattern2];
+                      break;
+                    case 3:
+                      thisPattern = apply2PiecesPattern(legoColorsLRGB[brickColors[0][bestSquarePattern2]], legoColorsLRGB[brickColors[6][bestTriPattern1]], legoColorsLRGB[brickColors[6][bestTriPattern2]], 11, 2, 12, 0, alphaBlock2);
+                      break;
+                  }
+
+                  for(let X = 0; X < widthProcessPattern; X++) {
+                    for(let Y = 0; Y < widthProcessPattern; Y++) {
+                      let i = (x + ox) * widthProcessPattern + X + ((y + oy) * widthProcessPattern + Y) * width;
+                      let i3 = i * 3;
+                      const c3 = (X + Y * widthProcessPattern) * 3;
+                      ditheredLRGB[i3 + 0] = thisPattern[c3 + 0];
+                      ditheredLRGB[i3 + 1] = thisPattern[c3 + 1];
+                      ditheredLRGB[i3 + 2] = thisPattern[c3 + 2];
+                    }
+                  }
+
+                  applyPattern(x + ox, y + oy, thisPattern);
+                }
+              }
+
+              //patternMap[i].choice.index = bestPattern;
+              changed = true;
+
+              if(passCount > 4) {
+                if(i > 1) i -= 2;
+                if(i > widthStuds) i -= widthStuds;
+              }
+            }
+          }
+          firstPass = false;
+        } while (changed);
+
+        callback(linearDatatoImageData(ditheredLRGB, width, height));
+
+        for(let i = 0; i < totalStuds; i++) {
+          const best = studOrder[i];
+
+          const x = best[0];
+          const y = best[1];
+
+          if(x % 2 === mx || y % 2 === my || x >= widthStuds - 1 || y >= heightStuds - 1) continue;
+
+          patternMap[i].options['2x2'].push(getPattern(x, y, 2, 2));
+        }
+      }
+    }
+  }
+
+
+  console.log('phase 1x1:');
+  resetImage();
+
+  firstPass = true;
+  passCount = 0;
 
   if(circlePatterns.length > 0 || halfCirclePatterns.length > 0 || quarterCirclePatterns.length > 0) {
     do {
       changed = false;
+      passCount++;
 
       for(let i = 0; i < totalStuds; i++) {
         const best = studOrder[i];
@@ -710,13 +1276,87 @@ export function leastErrorMultiScan({
 
         let best1x1Score = Infinity;
         let bestPattern = 0;
+        let bestPatternP;
 
-        for(let j = 0; j < patterns1x1.length; j++) {
-          let score = scorePattern(x, y, patterns1x1[j]);
+        let best1x1SquareScore = Infinity;
+        let bestSquarePattern = 0;
+        let best1x1CircleScore = Infinity;
+        let bestCirclePattern = 0;
+        let best1x1HalfCircleScore = Infinity;
+        let bestHalfCirclePattern = 0;
+        let best1x1QuarterCircleScore = Infinity;
+        let bestQuarterCirclePattern = 0;
+
+        const circleColors = brickColors[1].length;
+        const halfCircleColors = brickColors[2].length;
+        const quarterCircleColors = brickColors[3].length;
+
+        // square
+        for(let j = 0; j < brickColors[0].length; j++) {
+          let score = scorePattern(x, y, squarePatterns[j]);
+
+          if(score < best1x1SquareScore) {
+            best1x1SquareScore = score;
+            bestSquarePattern = j;
+          }
+        }
+
+        // middle
+        for(let j = 0; j < brickColors[1].length; j++) {
+          let score = scorePattern(x, y, circlePatterns[bestSquarePattern * circleColors + j]);
+
+          if(score < best1x1QuarterCircleScore) {
+            best1x1CircleScore = score;
+            bestCirclePattern = j;
+          }
+        }
+
+        for(let j = 0; j < brickColors[2].length; j++) {
+          for(let r = 0; r < 4; r++) {
+            let score = scorePattern(x, y, halfCirclePatterns[bestSquarePattern * halfCircleColors * 4 + j * 4 + r]);
+
+            if(score < best1x1HalfCircleScore) {
+              best1x1HalfCircleScore = score;
+              bestHalfCirclePattern = j * 4 + r;
+            }
+          }
+        }
+
+        for(let j = 0; j < brickColors[3].length; j++) {
+          for(let r = 0; r < 4; r++) {
+            let score = scorePattern(x, y, quarterCirclePatterns[bestSquarePattern * quarterCircleColors * 4 + j * 4 + r]);
+
+            if(score < best1x1QuarterCircleScore) {
+              best1x1QuarterCircleScore = score;
+              bestQuarterCirclePattern = j * 4 + r;
+            }
+          }
+        }
+
+        // background
+        for(let j = 0; j < brickColors[0].length; j++) {
+          let score = scorePattern(x, y, circlePatterns[j * circleColors + bestCirclePattern]);
 
           if(score < best1x1Score) {
             best1x1Score = score;
-            bestPattern = j;
+            bestPattern = j * circleColors + bestCirclePattern;
+            bestPatternP = circlePatterns[bestPattern];
+          }
+
+          score = scorePattern(x, y, halfCirclePatterns[j * halfCircleColors * 4 + bestHalfCirclePattern]);
+
+          if(score < best1x1Score) {
+            best1x1Score = score;
+            bestPattern = j * halfCircleColors * 4 + bestHalfCirclePattern;
+            bestPatternP = halfCirclePatterns[bestPattern];
+          }
+
+          score = scorePattern(x, y, quarterCirclePatterns[j * quarterCircleColors * 4 + bestQuarterCirclePattern]);
+
+          if(score < best1x1Score) {
+            best1x1Score = score;
+            bestPattern = j * quarterCircleColors * 4 + bestQuarterCirclePattern;
+            bestPatternP = quarterCirclePatterns[bestPattern];
           }
         }
 
@@ -726,16 +1366,21 @@ export function leastErrorMultiScan({
               const i = x * widthProcessPattern + X + (y * widthProcessPattern + Y) * width;
               const i3 = i * 3;
               const c3 = (X + Y * widthProcessPattern) * 3;
-              ditheredLRGB[i3 + 0] = patterns1x1[bestPattern][c3 + 0];
-              ditheredLRGB[i3 + 1] = patterns1x1[bestPattern][c3 + 1];
-              ditheredLRGB[i3 + 2] = patterns1x1[bestPattern][c3 + 2];
+              ditheredLRGB[i3 + 0] = bestPatternP[c3 + 0];
+              ditheredLRGB[i3 + 1] = bestPatternP[c3 + 1];
+              ditheredLRGB[i3 + 2] = bestPatternP[c3 + 2];
             }
           }
 
-          applyPattern(x, y, patterns1x1[bestPattern]);
+          applyPattern(x, y, bestPatternP);
 
-          patternMap[i].choice.index = bestPattern;
+          //patternMap[i].choice.index = bestPattern;
           changed = true;
+
+          if(passCount > 4) {
+            if(i > 1) i -= 2;
+            if(i > widthStuds) i -= widthStuds;
+          }
         }
       }
       firstPass = false;
@@ -749,13 +1394,13 @@ export function leastErrorMultiScan({
       const x = best[0];
       const y = best[1];
 
-      //patternMap[i].options['1x1'].push(getPattern(x, y, 1, 1));
-      patternMap[i].options['1x1'].push(patterns1x1[patternMap[i].choice.index]);
+      patternMap[i].options['1x1'].push(getPattern(x, y, 1, 1));
+      //patternMap[i].options['1x1'].push(patterns1x1[patternMap[i].choice.index]);
     }
   }
 
   // find best 2/3 x 1 pattern vertical
-  console.log('phase 2:');
+  console.log('phase Tiles 1:');
   resetImage();
 
   const squareVerticalPatterns = [
@@ -872,7 +1517,7 @@ export function leastErrorMultiScan({
     patternMap[i].options['1x2'].push(getPattern(x, y, 1, 2));
   }
 
-  console.log('phase 3:');
+  console.log('phase Tiles 2:');
   resetImage();
 
   firstPass = true;
@@ -969,7 +1614,7 @@ export function leastErrorMultiScan({
   }
 
   // find best 2/3 x 1 pattern horizontal
-  console.log('phase 4:');
+  console.log('phase Tiles 3:');
   resetImage();
 
   firstPass = true;
@@ -1065,7 +1710,7 @@ export function leastErrorMultiScan({
     patternMap[i].options['2x1'].push(getPattern(x, y, 2, 1));
   }
 
-  console.log('phase 5:');
+  console.log('phase Tiles 4:');
   resetImage();
 
   firstPass = true;
@@ -1161,10 +1806,7 @@ export function leastErrorMultiScan({
     patternMap[i].options['2x1'].push(getPattern(x, y, 2, 1));
   }
 
-  console.log('phase 6:');
-
-
-  console.log('phase omega:');
+  console.log('phase Final:');
   resetImage();
 
   firstPass = true;
@@ -1216,22 +1858,20 @@ export function leastErrorMultiScan({
             }
           }
           else {
-            if(patternMap[i].choice.index === -1) {
-              let bestNestedScore = Infinity;
-              let bestNestedPattern = 0;
-              for(let k = 0; k < patternMap[i+1].options['1x1'].length; k++) {
-                let nestedScore = scorePattern(x, y, joinPatterns([[patternMap[i].options['1x1'][j],patternMap[i+1].options['1x1'][k]]]), 2, 1);
-                if(nestedScore < bestNestedScore) {
-                  bestNestedScore = nestedScore;
-                  bestNestedPattern = k;
-                }
+            let bestNestedScore = Infinity;
+            let bestNestedPattern = 0;
+            for(let k = 0; k < patternMap[i+1].options['1x1'].length; k++) {
+              let nestedScore = scorePattern(x, y, joinPatterns([[patternMap[i].options['1x1'][j],patternMap[i+1].options['1x1'][k]]]), 2, 1);
+              if(nestedScore < bestNestedScore) {
+                bestNestedScore = nestedScore;
+                bestNestedPattern = k;
               }
+            }
 
-              if(bestNestedScore < best1x1Score) {
-                best1x1Score = bestNestedScore;
-                bestPattern = j;
-                subPatterns = [[1, 0, bestNestedPattern]];
-              }
+            if(bestNestedScore < best1x1Score) {
+              best1x1Score = bestNestedScore;
+              bestPattern = j;
+              subPatterns = [[1, 0, bestNestedPattern]];
             }
           }
         }
@@ -1254,22 +1894,63 @@ export function leastErrorMultiScan({
             }
           }
           else {
-            if(patternMap[i].choice.index === -1) {
-              let bestNestedScore = Infinity;
-              let bestNestedPattern = 0;
-              for(let k = 0; k < patternMap[i+widthStuds].options['1x1'].length; k++) {
-                let nestedScore = scorePattern(x, y, [...patternMap[i].options['1x1'][j],...patternMap[i+widthStuds].options['1x1'][k]], 1, 2);
-                if(nestedScore < bestNestedScore) {
-                  bestNestedScore = nestedScore;
-                  bestNestedPattern = k;
-                }
+            let bestNestedScore = Infinity;
+            let bestNestedPattern = 0;
+            for(let k = 0; k < patternMap[i+widthStuds].options['1x1'].length; k++) {
+              let nestedScore = scorePattern(x, y, [...patternMap[i].options['1x1'][j],...patternMap[i+widthStuds].options['1x1'][k]], 1, 2);
+              if(nestedScore < bestNestedScore) {
+                bestNestedScore = nestedScore;
+                bestNestedPattern = k;
               }
+            }
 
-              if(bestNestedScore < best1x1Score) {
-                best1x1Score = bestNestedScore;
-                bestPattern = j;
-                subPatterns = [[0, 1, bestNestedPattern]];
+            if(bestNestedScore < best1x1Score) {
+              best1x1Score = bestNestedScore;
+              bestPattern = j;
+              subPatterns = [[0, 1, bestNestedPattern]];
+            }
+          }
+        }
+        else if(patternMap[i].choice.type === '2x2') {
+          if(patternMap[i].choice.index === -1) {
+          }
+          else {
+            let bestNestedScore = Infinity;
+            let bestNestedPattern = [0, 0, 0];
+            for(let k = 0; k < patternMap[i+widthStuds].options['1x1'].length; k++) {
+              let nestedScore = scorePattern(x, y, [...patternMap[i].options['1x1'][j],...patternMap[i+widthStuds].options['1x1'][k]], 1, 2);
+              if(nestedScore < bestNestedScore) {
+                bestNestedScore = nestedScore;
+                bestNestedPattern[0] = k;
               }
+            }
+            bestNestedScore = Infinity;
+            for(let k = 0; k < patternMap[i+widthStuds].options['1x1'].length; k++) {
+              let nestedScore = scorePattern(x, y, joinPatterns([
+                [patternMap[i].options['1x1'][j], patternMap[i+1].options['1x1'][k]],
+                [patternMap[i+widthStuds].options['1x1'][bestNestedPattern[0]], getAlphaBlock(x + 1, y + 1)]
+              ]), 2, 2);
+              if(nestedScore < bestNestedScore) {
+                bestNestedScore = nestedScore;
+                bestNestedPattern[1] = k;
+              }
+            }
+            bestNestedScore = Infinity;
+            for(let k = 0; k < patternMap[i+widthStuds].options['1x1'].length; k++) {
+              let nestedScore = scorePattern(x, y, joinPatterns([
+                [patternMap[i].options['1x1'][j], patternMap[i+1].options['1x1'][bestNestedPattern[1]]],
+                [patternMap[i+widthStuds].options['1x1'][bestNestedPattern[0]], patternMap[i+1+widthStuds].options['1x1'][k]]
+              ]), 2, 2);
+              if(nestedScore < bestNestedScore) {
+                bestNestedScore = nestedScore;
+                bestNestedPattern[2] = k;
+              }
+            }
+
+            if(bestNestedScore < best1x1Score) {
+              best1x1Score = bestNestedScore;
+              bestPattern = j;
+              subPatterns = [[0, 1, bestNestedPattern[0]], [1, 0, bestNestedPattern[1]], [1, 1, bestNestedPattern[2]]];
             }
           }
         }
@@ -1320,10 +2001,13 @@ export function leastErrorMultiScan({
 
       let best2x1Score = Infinity;
       let best1x2Score = Infinity;
+      let best2x2Score = Infinity;
       let bestPattern2x1 = 0;
       let bestPattern1x2 = 0;
+      let bestPattern2x2 = 0;
       let subPatterns2x1 = [];
       let subPatterns1x2 = [];
+      let subPatterns2x2 = [];
       if(x < widthStuds - 1 &&
         (
           (patternMap[i].choice.type === '1x1' && patternMap[i + 1].choice.type === '1x1') ||
@@ -1340,6 +2024,7 @@ export function leastErrorMultiScan({
           }
         }
       }
+
       else if (x < widthStuds - 1 &&
         (
           (patternMap[i].choice.type === '1x1' && patternMap[i + 1].choice.type === '1x2') ||
@@ -1400,7 +2085,39 @@ export function leastErrorMultiScan({
         }
       }
 
-      if(best2x1Score < 0 && best2x1Score < best1x2Score) {
+      // 2x2
+      if(x < widthStuds - 1 && y < heightStuds - 1 && (
+        (
+          (patternMap[i].choice.type === '1x1' && patternMap[i + widthStuds].choice.type === '1x1') ||
+          (patternMap[i].choice.type === '1x2' && patternMap[i].choice.index >= 0)
+        ) && (
+          (patternMap[i + 1].choice.type === '1x1' && patternMap[i + 1 + widthStuds].choice.type === '1x1') ||
+          (patternMap[i + 1].choice.type === '1x2' && patternMap[i + 1].choice.index >= 0)
+        )
+      ) || (
+        (
+          (patternMap[i].choice.type === '1x1' && patternMap[i + 1].choice.type === '1x1') ||
+          (patternMap[i].choice.type === '2x1' && patternMap[i].choice.index >= 0)
+        ) && (
+          (patternMap[i + widthStuds].choice.type === '1x1' && patternMap[i + 1 + widthStuds].choice.type === '1x1') ||
+          (patternMap[i + widthStuds].choice.type === '2x1' && patternMap[i + widthStuds].choice.index >= 0)
+        )
+      )
+      ) {
+        for(let j = 0; j < patternMap[i].options['2x2'].length; j++) {
+          let score = scorePattern(x, y, patternMap[i].options['2x2'][j], 2, 2);
+
+          if(score < best2x2Score) {
+            best2x2Score = score;
+            bestPattern2x2 = j;
+            subPatterns2x2 = [];
+          }
+        }
+      }
+
+      let bestScore = Math.min(best1x2Score, best2x1Score, best2x2Score);
+
+      if(best2x1Score === bestScore && best2x1Score < 0) {
         for(let X = 0; X < widthProcessPattern * 2; X++) {
           for(let Y = 0; Y < widthProcessPattern; Y++) {
             const i3 = (x * widthProcessPattern + X + (y * widthProcessPattern + Y) * width) * 3;
@@ -1441,24 +2158,49 @@ export function leastErrorMultiScan({
 
         changed = true;
       }
-      else if(best1x2Score < 0 && best1x2Score < best2x1Score) {
+      else if(best1x2Score === bestScore && best1x2Score < 0) {
         for(let X = 0; X < widthProcessPattern; X++) {
           for(let Y = 0; Y < widthProcessPattern*2; Y++) {
             const i3 = (x * widthProcessPattern + X + (y * widthProcessPattern + Y) * width) * 3;
             const c3 = (X + Y * widthProcessPattern) * 3;
-            ditheredLRGB[i3 + 0] = patternMap[i].options['1x2'][bestPattern2x1][c3 + 0];
-            ditheredLRGB[i3 + 1] = patternMap[i].options['1x2'][bestPattern2x1][c3 + 1];
-            ditheredLRGB[i3 + 2] = patternMap[i].options['1x2'][bestPattern2x1][c3 + 2];
+            ditheredLRGB[i3 + 0] = patternMap[i].options['1x2'][bestPattern1x2][c3 + 0];
+            ditheredLRGB[i3 + 1] = patternMap[i].options['1x2'][bestPattern1x2][c3 + 1];
+            ditheredLRGB[i3 + 2] = patternMap[i].options['1x2'][bestPattern1x2][c3 + 2];
           }
         }
 
-        applyPattern(x, y, patternMap[i].options['1x2'][bestPattern2x1], 1, 2);
+        applyPattern(x, y, patternMap[i].options['1x2'][bestPattern1x2], 1, 2);
 
         patternMap[i].choice.type = '1x2';
-        patternMap[i].choice.index = bestPattern2x1;
+        patternMap[i].choice.index = bestPattern1x2;
 
         patternMap[i + widthStuds].choice.type = '1x2';
         patternMap[i + widthStuds].choice.index = -1;
+        changed = true;
+      }
+      else if(best2x2Score === bestScore && best2x2Score < 0) {
+        for(let X = 0; X < widthProcessPattern*2; X++) {
+          for(let Y = 0; Y < widthProcessPattern*2; Y++) {
+            const i3 = (x * widthProcessPattern + X + (y * widthProcessPattern + Y) * width) * 3;
+            const c3 = (X + Y * widthProcessPattern * 2) * 3;
+            ditheredLRGB[i3 + 0] = patternMap[i].options['2x2'][bestPattern2x2][c3 + 0];
+            ditheredLRGB[i3 + 1] = patternMap[i].options['2x2'][bestPattern2x2][c3 + 1];
+            ditheredLRGB[i3 + 2] = patternMap[i].options['2x2'][bestPattern2x2][c3 + 2];
+          }
+        }
+
+        applyPattern(x, y, patternMap[i].options['2x2'][bestPattern2x2], 2, 2);
+
+        patternMap[i].choice.type = '2x2';
+        patternMap[i].choice.index = bestPattern2x2;
+
+        patternMap[i + 1].choice.type = '2x2';
+        patternMap[i + 1].choice.index = -1;
+        patternMap[i + widthStuds].choice.type = '2x2';
+        patternMap[i + widthStuds].choice.index = -1;
+        patternMap[i + 1 + widthStuds].choice.type = '2x2';
+        patternMap[i + 1 + widthStuds].choice.index = -1;
+
         changed = true;
       }
     }
