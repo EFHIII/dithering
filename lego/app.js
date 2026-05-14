@@ -4,7 +4,7 @@ import {
   updateFalloffFunction,
 } from "../src/helpers/kernel.js";
 
-import { algorithmNames } from '../src/dithering-algorithms/algorithm-names.js';
+import { algorithmNames } from './algorithm-names.js';
 
 import { processImage } from './process-image-lego.js';
 

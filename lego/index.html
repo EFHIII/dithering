@@ -43,10 +43,10 @@
       <div class="parameters">
         <label for="colorspace">Colorspace</label>
         <select id="colorspace" name="colorspace" onchange="processImage()">
+          <option value="oklrab">OKLrab</option>
           <option value="hct">HCT</option>
           <option value="luma">Luma</option>
           <option value="cam16">CAM16</option>
-          <option value="oklrab">OKLrab</option>
           <option value="scaled_oklrab">OKLrab 0.7L</option>
           <option value="okl_ab">OKL*ab</option>
           <option value="oklab">OKLab</option>
@@ -83,10 +83,12 @@
       <legend>Palette Preview</legend>
       <div class="parameters" id="brickPalette">
       </div>
+      <!--
       <div class="parameters">
         <canvas id="paletteCanvas"></canvas><br>
           <canvas id="paletteCanvas2"></canvas>
       </div>
+    -->
     </fieldset>
     <fieldset>
       <legend>Preprocessing</legend>

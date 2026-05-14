@@ -14,31 +14,56 @@ import {
 
 
 const legoColors = [
-  '#C91A09',
-  '#F2CD37',
-  '#E4CD9E',
-  '#0055BF',
-  '#958A73',
-  '#FE8A18',
-  '#F8BB3D',
-  '#AA7D55',
-  '#BBE90B',
-  '#008F9B',
-  '#A95500',
-  '#078BC9',
-  '#E4ADC8',
-  '#36AEBF',
+  // grayscale
+  ['#FFFFFF', 'White'],
+  ['#A0A5A9', 'Light Bluish Gray'],
+  ['#6C6E68', 'Dark Bluish Gray'],
+  ['#05131D', 'Black'],
 
-  '#FFFFFF',
-  '#A0A5A9',
-  // dark colors
-  '#6C6E68',
-  '#05131D',
-  '#720E0F',
-  '#582A12',
-  '#237841',
-  '#184632',
-  '#0A3463',
+  // roygb
+  ['#C91A09', 'Red'],
+  ['#FE8A18', 'Orange'],
+  ['#F2CD37', 'Yellow'],
+  ['#237841', 'Green'],
+  ['#0055BF', 'Blue'],
+  ['#3F3691', 'Dark Purple'],
+
+  ['#720E0F', 'Dark Red'],
+  ['#CA4C0B', 'Reddish Orange'],
+  ['#FF698F', 'Coral'],
+  ['#352100', 'Dark Brown'],
+  ['#582A12', 'Reddish Brown'],
+  ['#958A73', 'Dark Tan'],
+  ['#E4CD9E', 'Tan'],
+  ['#F6D7B3', 'Light Nougat'],
+  ['#D09168', 'Nougat'],
+  ['#AA7D55', 'Medium Nougat'],
+  ['#A95500', 'Dark Orange'],
+  ['#F8BB3D', 'Bright Light Orange'],
+  ['#FFF03A', 'Bright Light Yellow'],
+  ['#DFEEA5', 'Yellowish Green'],
+  ['#BBE90B', 'Lime'],
+  ['#9B9A5A', 'Olive Green'],
+  ['#184632', 'Dark Green'],
+  ['#4B9F4A', 'Bright Green'],
+  ['#A0BCAC', 'Sand Green'],
+  ['#008F9B', 'Dark Turquoise'],
+  ['#ADC3C0', 'Light Aqua'],
+  ['#0A3463', 'Dark Blue'],
+  ['#078BC9', 'Dark Azure'],
+  ['#36AEBF', 'Medium Azure'],
+  ['#5A93DB', 'Medium Blue'],
+  ['#9FC3E9', 'Bright Light Blue'],
+  ['#6074A1', 'Sand Blue'],
+  ['#AC78BA', 'Medium Lavender'],
+  ['#E1D5ED', 'Lavender'],
+  ['#923978', 'Magenta'],
+  ['#C870A0', 'Dark Pink'],
+  ['#E4ADC8', 'Bright Pink'],
+
+  // old colors
+  ['#9BA19D', 'Light Gray'],
+  ['#6D6E5C', 'Dark Gray'],
 ];
 
 const legoBricks = [
@@ -113,8 +138,8 @@ async function buildTable() {
   legoColors.forEach((hex, cIdx) => {
     const th = document.createElement('th');
     const swatch = document.createElement('div');
-    swatch.className = 'col-swatch';
-    swatch.style.background = hex;
+    swatch.className = 'col-swatch tooltip';
+    swatch.style.background = hex[0];
 
     swatch.addEventListener('click', () => {
       // only toggle rows that are not entirely disabled
@@ -143,6 +168,12 @@ async function buildTable() {
       updateUI();
     });
 
+    const tooltip = document.createElement('span');
+    tooltip.className = 'tooltipText';
+    tooltip.innerText = hex[1];
+
+    swatch.appendChild(tooltip);
+
     th.appendChild(swatch);
     headerRow.appendChild(th);
     columnSwatches[cIdx] = swatch;
@@ -152,7 +183,7 @@ async function buildTable() {
 
   // precompute recolors
   for (const brick of legoBricks) {
-    for (const hex of legoColors) await recolorImage(brick.img, hex);
+    for (const hex of legoColors) await recolorImage(brick.img, hex[0]);
   }
 
   legoBricks.forEach((brick, rIdx) => {
@@ -197,14 +228,21 @@ async function buildTable() {
     legoColors.forEach((hex, cIdx) => {
       const td = document.createElement('td');
       const wrapper = document.createElement('div');
-      wrapper.className = 'cell-wrapper';
+      wrapper.className = 'cell-wrapper tooltip';
 
-      const coloredSrc = recolorCache.get(brick.img + '|' + hex);
+      const coloredSrc = recolorCache.get(brick.img + '|' + hex[0]);
       const cellImg = new Image();
       cellImg.src = coloredSrc;
       cellImg.className = 'cell-img';
 
+      const tooltip = document.createElement('span');
+      tooltip.className = 'tooltipText';
+      tooltip.innerText = hex[1];
+
       wrapper.appendChild(cellImg);
+
+      wrapper.appendChild(tooltip);
+
       td.appendChild(wrapper);
       tr.appendChild(td);
 
@@ -227,12 +265,12 @@ async function buildTable() {
   // set default table values
   const myTable = document.getElementsByTagName('table')[0];
 
-  myTable.children[1].children[2].children[0].click();
+  myTable.children[1].children[7].children[0].click();
 
-  myTable.children[1].children[15].children[0].click();
-  myTable.children[1].children[16].children[0].click();
-  myTable.children[1].children[17].children[0].click();
-  myTable.children[1].children[18].children[0].click();
+  myTable.children[1].children[1].children[0].click();
+  myTable.children[1].children[2].children[0].click();
+  myTable.children[1].children[3].children[0].click();
+  myTable.children[1].children[4].children[0].click();
 }
 
 function updateUI() {
@@ -303,6 +341,7 @@ const kernelGraphCtx = kernelGraphCanvas.getContext('2d', {
   alpha: false,
   willReadFrequently: true
 });
+/*
 const paletteCtx = paletteCanvas.getContext('2d', {
   colorSpace: 'srgb',
   alpha: false,
@@ -313,6 +352,7 @@ const palette2Ctx = paletteCanvas2.getContext('2d', {
   alpha: false,
   willReadFrequently: true
 });
+*/
 
 kernelGraphCanvas.width = 250;
 kernelGraphCanvas.height = 250;
@@ -519,7 +559,7 @@ export function processImage() {
     energyStart: parseFloat(energyStart.value) / 100,
     energyCooling: parseFloat(energyCooling.value) / 10000,
     // LEGO
-    legoColors,
+    legoColors: legoColors.map(a=>a[0]),
     legoBricks,
     matrix
   });

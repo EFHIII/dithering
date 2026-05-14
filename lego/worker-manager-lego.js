@@ -14,7 +14,8 @@ import {
 
 // Least Error
 //import { leastErrorFirst } from './dithering-algorithms/least-error-first.js';
-import { leastErrorScan } from '../lego/dithering-algorithms/least-error-scan.js';
+//import { leastErrorScan } from '../lego/dithering-algorithms/least-error-scan.js';
+import { leastErrorMultiScan } from '../lego/dithering-algorithms/least-error-multi-scan.js';
 // Simulated Annealing
 //import { energyDither } from '../dithering-algorithms/simulated-annealing/energy-dither.js';
 //import { energyWithSwaps } from '../dithering-algorithms/simulated-annealing/energy-with-swaps.js';
@@ -33,7 +34,8 @@ import { leastErrorScan } from '../lego/dithering-algorithms/least-error-scan.js
 const functions = {
   // Least Error
   //'least-error-first.js': leastErrorFirst,
-  'least-error-scan.js': leastErrorScan,
+  //'least-error-scan.js': leastErrorScan,
+  'least-error-multi-scan.js': leastErrorMultiScan,
   // Simulated Annealing
   //'energy-dither.js': energyDither,
   //'energy-with-swaps.js': energyWithSwaps,
@@ -51,7 +53,7 @@ const functions = {
 };
 
 self.onmessage = (e) => {
-  console.log(e);
+  console.log(e.data);
 
   const {
     ditheringAlgorithm,

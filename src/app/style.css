@@ -114,3 +114,23 @@ th, td {
 .header-active {
   outline: 1px solid #4f4;
 }
+
+/* Tooltip text */
+.tooltipText {
+  visibility: hidden;
+  background-color: #ffffff;
+  text-align: center;
+  padding: 0.6em;
+  position: absolute;
+  z-index: 1;
+  font-size: 0.75em;
+  font-weight: normal;
+  border-style: solid;
+
+  transform: translate(-50%, -120%);
+  white-space: nowrap;
+}
+
+.tooltip:hover .tooltipText {
+  visibility: visible;
+}
