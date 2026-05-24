@@ -261,7 +261,7 @@ export function processImage() {
       kernel,
       kernelSize,
       // Algorithm parameters
-      colorspace: 'oklrab',
+      colorspace: colorspace.value,
       viewingCondition: viewingCondition.value,
       ditherMatrix: 'voidAndCluster',
       pattern: pattern.value,
